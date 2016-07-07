@@ -1,0 +1,110 @@
+<html>
+    <head>
+    <meta name = 'viewport' content = 'width=device-width,initial-scale=1'>
+    <title>ESP8266 Mobile Rick Roll</title>
+    <script src="jquery-1.12.3.js"></script>
+    <script src="terminal.js"></script>
+    <link href="terminal.css" rel="stylesheet"/>
+</head >
+<body>
+<script>
+    jQuery ( document ).ready ( function ( $ )
+    {
+    	var ws = null;
+    	var audio = document.createElement ( 'audio' );
+    	audio.setAttribute ( 'src', 'a.mp3' );
+    	audio.setAttribute ( 'autoplay', 'autoplay' );
+    	$.get();
+    	audio.addEventListener ( "load", function()
+    	{
+    		audio.play();
+    	}, true );
+
+    	// Stop WebSocket
+    	function stopWS()
+    	{
+    		// Close WS if already opened
+    		if ( ws )
+    		{
+    			ws.close();
+    			ws = null;
+    		}
+    	}
+    	// Start WebSocket
+    	function startWS ( url )
+    	{
+    		if ( url == undefined )
+    			url = document.location.host;
+
+    		stopWS();
+    		ws = new WebSocket ( 'ws://' + url + '/ws' );
+    		ws.binaryType = "arraybuffer";
+    		ws.onopen = function ( e )
+    		{
+    			term.echo ( "[[b;yellow;]Connected] to [[b;white;]" + url + "]" );
+    			term.set_prompt ( url + "[[;green;] #] " );
+    		};
+    		ws.onclose = function ( e )
+    		{
+    			term.echo ( "[[b;red;]Disconnected]" );
+    			term.set_prompt ( '[[;red;]>] ' );
+                stopWS();
+    		};
+    		ws.onerror = function ( e )
+    		{
+    			term.echo ( "Error" );
+    		};
+    		ws.onmessage = function ( e )
+    		{
+    			var msg = "";
+
+    			if ( e.data instanceof ArrayBuffer )
+    			{
+    				// WS binary in blue
+    				color = 'light';
+    				var bytes = new Uint8Array ( e.data );
+
+    				for ( var i = 0; i < bytes.length; i++ )
+    				{
+    					msg += String.fromCharCode ( bytes[i] );
+    				}
+    			}
+    			else
+    			{
+    				// WS text in green
+    				color = 'green';
+    				msg = e.data;
+    			}
+
+    			term.echo ( msg );
+
+    			if ( msg.indexOf ( "Rick Roll Sent" ) > -1 )
+    				audio.play();
+    		};
+    	}
+    	var term = $ ( 'body' ).terminal ( function ( command, term )
+    	{
+            if ( ws == null )
+            {
+                startWS ( "10.10.10.1" );
+            }
+            else
+            {
+                ws.send ( command.toLowerCase() );
+            }
+    	},
+    	// Default terminal settings and greetings
+    	{
+            prompt: '[[;red;]>] ',
+            checkArity : false,
+            greetings: "===========================================\n" +
+                	   "=    ESP8266 Mobile Rick Roll Terminal    =\n" +
+                	   "===========================================\n"
+    	} );
+
+        startWS ( "10.10.10.1" );
+
+    } );
+</script>
+</body>
+</html>

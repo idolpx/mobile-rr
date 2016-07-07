@@ -1,0 +1,142 @@
+<html>
+<head>
+    <title>FREE Highspeed WiFi</title>
+    <meta name='viewport' content='width=device-width,initial-scale=1'>
+    <style>
+        body {
+            background-color: #252525;
+            border-color: #454545;
+            color: #fff;
+            text-shadow: 0 1px 0 #111
+        }
+        textarea {
+            padding: .4em;
+            line-height: 1.4em;
+            width: 100%;
+            height: 350px;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            background-color: #2a2a2a;
+            border-color: #1d1d1d;
+            color: #fff;
+            overflow: hidden;
+        }
+        button {
+            background-color: #6B6B6B;
+            border-color: #1f1f1f;
+            color: #fff;
+            text-shadow: 0 1px 0 #111;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            width: 100%;
+            margin: .5em 0;
+            padding: .7em 1em;
+            font-weight: bold;
+            border-width: 1px;
+            border-style: solid
+        }
+        body,
+        textarea,
+        button {
+            font-size: 1em;
+            line-height: 1.3;
+            font-family: sans-serif
+        }
+        .ui-corner-all {
+            -webkit-border-radius: .3125em;
+            border-radius: .3125em
+        }
+        #l {
+            padding: 10
+        }
+        #b,
+        #m {
+            display: none
+        }
+        #bg {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%
+        }
+        #bg img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: auto;
+            min-width: 50%;
+            min-height: 50%
+        }
+        #m span {
+            position: fixed;
+            right: 5px;
+            bottom: 10px;
+            text-align: right;
+            font-family: sans-serif;
+            color: white;
+            text-shadow: 4px 4px 2px rgba(150, 150, 150, 1)
+        }
+    </style>
+</head>
+<body>
+    <div style='min-height:700px;'>
+        <div id='l'>FREE Highspeed WiFi Provided by
+            <br><img src='l.png' style='display:block;margin:auto;' width='100%'>
+            <h3>FREE WI-FI ACCESS TERMS AND CONDITIONS</h3>
+            <textarea class='ui-corner-all'>This agreement sets out the terms and conditions on which wireless internet access ("the Service") is provided free of charge to you, a guest, vendor, board member or employee of the FREE WIFI ANYWHERE association ("The Association").
+
+Your access to the Service is completely at the discretion of the Association.  Access to the Service may be blocked, suspended, or terminated at any time for any reason including, but not limited to, violation of this Agreement, actions that may lead to liability for the Association, disruption of access to other users or networks, and violation of applicable laws or regulations.  The Association reserves the right to monitor and collect information while you are connected to the Service and that the collected information can be used at discretion of the Association, including sharing the information with any law enforcement agencies, the Association partners and/or the Association vendors.
+
+The Association may revise this Agreement at any time. You must accept this Agreement each time you use the Service and it is your responsibility to review it for any changes each time.
+
+We reserve the right at all times to withdraw the Service, change the specifications or manner of use of the Service, to change access codes, usernames, passwords or other security information necessary to access the service.
+
+The service and any products or services provided on or in connection with the service are provided on an "as is", "as available" basis without warranties of any kind. All warranties, conditions, representations, indemnities and guarantees with respect to the content or service and the operation, capacity, speed, functionality, qualifications, or capabilities of the services, goods or personnel resources provided hereunder, whether express or implied, arising by law, custom, prior oral or written statements by the Association, or otherwise (including, but not limited to any warranty of satisfactory quality, merchantability, fitness for particular purpose, title and non-infringement) are hereby overridden, excluded and disclaimed.</textarea>
+            <button id='b' class='ui-btn ui-corner-all'>I Accept</button>
+        </div>
+        <div id='m'>
+            <div id='bg'><img src='a.gif'>
+            </div><span>You just got Rick-Roll'd</span>
+            <audio id='a' loop='loop' preload='preload' src='m.mp3' />
+        </div>
+    </div>
+    <script>
+        var a = document.getElementById("a");
+        var m = document.getElementById("m");
+        var l = document.getElementById("l");
+        var b = document.getElementById("b");
+
+        b.addEventListener("click", function() {
+            a.play();
+            m.style.display = "block";
+            l.style.display = "none"
+            trigger();
+        }, false);
+
+        document.addEventListener("DOMContentLoaded", function() {
+            b.style.display = "block"
+        }, false);
+
+        function trigger()
+        {
+            var xmlHttp = new XMLHttpRequest();
+
+            xmlHttp.onreadystatechange = function() {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                {
+                    console.log('Trigger: ' + xmlHttp.responseText);
+                }
+            };
+            xmlHttp.open("GET", "/trigger", true); // true for asynchronous
+            xmlHttp.send(null);
+        }
+    </script>
+</body>
+</html>
