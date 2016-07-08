@@ -6,7 +6,6 @@ To access the console, connect to the ESP8266 Access Point and browse to "http:/
 From here you can monitor all connections and see when someone gets Rick Roll'd by the device.
 
 The purpose of this project was to help me get familiar with programming for the ESP8266.
-I learned a lot from other projects to get this working the way I had envisioned.
 
 References (I learned everything I needed to create this from these projects)
 - PlatformIO - http://platformio.org/
