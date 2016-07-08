@@ -1,7 +1,7 @@
 //
 // ESP8266 Mobile Rick Roll Captive Portal
-// - User connects thinking it is for free WiFi
-// - After accepting Terms of Usage they are Rick Roll'd
+// - User connects thinking it is a free WiFi access point
+// - After accepting Terms of Service they are Rick Roll'd
 //
 // References (I learned everything I needed to create this from these projects)
 // PlatformIO - http://platformio.org/
@@ -54,7 +54,7 @@ static void _u0_putc ( char c )
 //***************************************************************************
 // Global data section.														*
 //***************************************************************************
-char  				*ssid = "FREE Highspeed WiFi";
+char  				ssid[] = "FREE Highspeed WiFi";
 bool		 		DEBUG = 1;
 
 #define PIEZO_PIN		4
@@ -75,6 +75,7 @@ bool		 		DEBUG = 1;
                   "[[b;cyan;]ls]        list SPIFFS files\n" \
                   "[[b;cyan;]ping]      send ping command\n" \
                   "[[b;cyan;]reboot]    reboot system\n" \
+				  "[[b;cyan;]ssid [s]]	change ssid to 's'\n" \
                   "[[b;cyan;]who]       show all clients connected\n" \
                   "[[b;cyan;]whoami]    show your client #"
 
@@ -101,7 +102,7 @@ char 				str_vcc[8];
 //***************************************************************************
 
 //***************************************************************************
-//                                  D B G P R I N T							*
+//                            D B G P R I N T								*
 //***************************************************************************
 void dbg_printf ( const char *format, ... )
 {
@@ -295,9 +296,7 @@ void setup ( void )
 	beep_rr();
 
 	// Setup Access Point
-	WiFi.mode ( WIFI_AP );
-	WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
-	WiFi.softAP ( ssid );
+	setupAP();
 	WiFi.softAPmacAddress ( mac );
 
 	// Startup Banner
@@ -348,6 +347,13 @@ void setup ( void )
 	setupOTAServer();
 
 	dbg_printf ( "\nReady!\n--------------------" ) ;
+}
+
+void setupAP()
+{
+	WiFi.mode ( WIFI_AP );
+	WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
+	WiFi.softAP ( ssid );
 }
 
 void setupSPIFFS()
@@ -430,7 +436,7 @@ void setupOTAServer()
 	// ArduinoOTA.setPort(8266);
 
 	// Hostname defaults to esp8266-[ChipID]
-	// ArduinoOTA.setHostname("myesp8266");
+	ArduinoOTA.setHostname("mobile-rr");
 
 	// No authentication by default
 	// ArduinoOTA.setPassword((const char *)"123");
@@ -495,22 +501,29 @@ void onRequest ( AsyncWebServerRequest *request )
 		request->url().c_str()
 	) ;
 
-	// Rebase all file requests to root (captive portal mode)
-	String path = request->url().substring ( request->url().lastIndexOf ( "/" ) ) ;
+	String path = request->url();
 
 	if ( path.endsWith ( "/" ) )
 		path += "index.htm";
 
 	if ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) )
-		path = "/index.htm";
-
-	if ( !request->hasParam ( "download" ) && SPIFFS.exists ( path + ".gz" ) )
 	{
-		request->send ( SPIFFS, path, String(), request->hasParam ( "download" ) );
+		//AsyncWebHeader *h = request->getHeader ( "User-Agent" );
+
+		// Redirect to captive portal
+		//dbg_printf ( "HTTP[%d]: Redirected to captive portal\n%s", remoteIP[3], h->value().c_str() ) ;
+		request->redirect ( "http://freewifi.com/index.htm" );
 	}
 	else
 	{
-		request->send ( SPIFFS, path ) ;                						// Okay, send the file
+		if ( !request->hasParam ( "download" ) && SPIFFS.exists ( path + ".gz" ) )
+		{
+			request->send ( SPIFFS, path, String(), request->hasParam ( "download" ) );
+		}
+		else
+		{
+			request->send ( SPIFFS, path ) ;                						// Okay, send the file
+		}
 	}
 
 	digitalWrite ( LED_BUILTIN, HIGH );                   						// Turn the LED off by making the voltage HIGH
@@ -658,12 +671,12 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 	}
 
 	// Custom command to talk to device
-	if ( !strcmp_P ( msg, PSTR ( "ping" ) ) )
+	if ( !strcasecmp_P ( msg, PSTR ( "ping" ) ) )
 	{
 		client->printf_P ( PSTR ( "received your [[b;cyan;]ping], here is my [[b;cyan;]pong]" ) );
 
 	}
-	else if ( !strcmp_P ( msg, PSTR ( "debug" ) ) )
+	else if ( !strcasecmp_P ( msg, PSTR ( "debug" ) ) )
 	{
 		DEBUG = !DEBUG;
 		if ( DEBUG )
@@ -678,7 +691,7 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 	}
 	// Dir files on SPIFFS system
 	// --------------------------
-	else if ( !strcmp_P ( msg, PSTR ( "ls" ) ) )
+	else if ( !strcasecmp_P ( msg, PSTR ( "ls" ) ) )
 	{
 		FSInfo fs_info ;
 		uint16_t cnt = 0;
@@ -707,11 +720,11 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 						   formatBytes ( fs_info.totalBytes - fs_info.usedBytes ).c_str()
 						 );
 	}
-	else if ( !strcmp_P ( msg, PSTR ( "whoami" ) ) )
+	else if ( !strcasecmp_P ( msg, PSTR ( "whoami" ) ) )
 	{
 		client->printf_P ( PSTR ( "[[b;green;]You are client #%u at index[%d&#93;]" ), client->id(), index );
 	}
-	else if ( !strcmp_P ( msg, PSTR ( "who" ) ) )
+	else if ( !strcasecmp_P ( msg, PSTR ( "who" ) ) )
 	{
 		uint8_t cnt = 0;
 
@@ -734,7 +747,7 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 			}
 		}
 	}
-	else if ( !strcmp_P ( msg, PSTR ( "info" ) ) )
+	else if ( !strcasecmp_P ( msg, PSTR ( "info" ) ) )
 	{
 		uint8_t mac[6];
 		WiFi.softAPmacAddress ( mac );
@@ -760,14 +773,15 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 		client->printf_P ( PSTR ( "Flash Speed:  %d MHz\n " ), int ( ESP.getFlashChipSpeed() / 1000000 ) );
 
 		client->printf_P ( PSTR ( "[[b;cyan;]NETWORK]" ) );
-		client->printf_P ( PSTR ( "SoftAP MAC: %02X:%02X:%02X:%02X:%02X:%02X\nSoftAP IP:  " IPSTR "\n " ),
+		client->printf_P ( PSTR ( "SoftAP SSID: %s" ), ssid );
+		client->printf_P ( PSTR ( "SoftAP  MAC: %02X:%02X:%02X:%02X:%02X:%02X\nSoftAP   IP: " IPSTR "\n " ),
 						   MAC2STR ( mac ),
 						   IP2STR ( ip )
 						 ) ;
 
 		client_status ( client );
 	}
-	else if ( ( l >= 4 && !strncmp_P ( msg, PSTR ( "beep " ), 5 ) ) || !strcmp_P ( msg, PSTR ( "beep" ) ) )
+	else if ( ( l >= 4 && !strncasecmp_P ( msg, PSTR ( "beep " ), 5 ) ) || !strcasecmp_P ( msg, PSTR ( "beep" ) ) )
 	{
 		if (strstr(msg, "rr"))
 		{
@@ -783,15 +797,22 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 		}
 
 	}
-	else if ( !strcmp_P ( msg, PSTR ( "count" ) ) )
+	else if ( ( l > 5 && !strncasecmp_P ( msg, PSTR ( "ssid " ), 5 ) )  )
+	{
+		sprintf ( ssid, "%s", &msg[5] );
+		dbg_printf ( "[[b;yellow;]Changing SSID:] %s" , ssid );
+		beep ( 1000 );
+		setupAP();
+	}
+	else if ( !strcasecmp_P ( msg, PSTR ( "count" ) ) )
 	{
 		client->printf_P ( PSTR ( "[[b;yellow;]Rick Roll Count]: %d" ) , rrcount );
 	}
-	else if ( ( *msg == '?' || !strcmp_P ( msg, PSTR ( "help" ) ) ) )
+	else if ( ( *msg == '?' || !strcasecmp_P ( msg, PSTR ( "help" ) ) ) )
 	{
 		client->printf_P ( PSTR ( HELP_TEXT ) );
 	}
-	else if ( !strcmp_P ( msg, PSTR ( "reboot" ) ) )
+	else if ( !strcasecmp_P ( msg, PSTR ( "reboot" ) ) )
 	{
 		ws.closeAll() ;
 		delay ( 1000 ) ;
