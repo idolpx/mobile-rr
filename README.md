@@ -8,7 +8,7 @@ From here you can monitor all connections and see when someone gets Rick Roll'd 
 The purpose of this project was to help me get familiar with programming for the ESP8266.
 
 References (I learned everything I needed to create this from these projects)
-- PlatformIO - http://platformio.org/
+- PlatformIO - http://platformio.org/ <br>
              http://docs.platformio.org/en/latest/platforms/espressif.html#uploading-files-to-file-system-spiffs
 - ESP8266 Captive Portal - https://www.hackster.io/rayburne/esp8266-captive-portal-5798ff
 - ESP-RADIO - https://github.com/Edzelf/Esp-radio
