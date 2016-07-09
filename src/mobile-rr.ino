@@ -75,7 +75,7 @@ bool		 		DEBUG = 1;
                   "[[b;cyan;]ls]        list SPIFFS files\n" \
                   "[[b;cyan;]ping]      send ping command\n" \
                   "[[b;cyan;]reboot]    reboot system\n" \
-				  "[[b;cyan;]ssid [s]]	change ssid to 's'\n" \
+				  "[[b;cyan;]ssid 's']  change ssid to 's'\n" \
                   "[[b;cyan;]who]       show all clients connected\n" \
                   "[[b;cyan;]whoami]    show your client #"
 
