@@ -5,8 +5,10 @@ The purpose of this project was to help me get familiar with programming for the
 * The captive portal helper on their phone/table/computer kicks in and presents them with a page showing "Terms of Service" and a button labeled "I Accept"
 * When they click the button a full screen animated GIF of Rick Astley dancing appears and an audio clip of "Never Gonna Give You Up" starts playing on loop along with a message in the bottom right letting them know they got rock rolled (Incase they don't understand what's going on)
 
+On bootup, the buzzer plays a little bit of "Never Gonna Give You Up".
 To access the console, connect to the ESP8266 Access Point and browse to "http://10.10.10.1/console".
 From here you can monitor all connections and see when someone gets Rick Roll'd by the device.
+The console also allows you to enter commands to get more info about the status of the device, change the SSID and even beep the buzzer.
 
 ## Compiling
 I use PlatformIO to build this.  http://platformio.org/
@@ -23,6 +25,7 @@ I use PlatformIO to build this.  http://platformio.org/
 
 ## Wiring
 Connect the '+' lead of the piezo to GPIO 4 (D2 on WeMos D1 Mini) and '-' lead to Ground
+I chose GPIO 4 because I put installed the long leads with the headers on the WeMos D1 Mini and the spacing from ground was perfect to just plug the buzzer in direct between G & D2
 
 ## References
 I learned everything I needed to create this from these projects
