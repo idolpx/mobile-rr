@@ -14,7 +14,7 @@ The console also allows you to enter commands to get more info about the status 
 I use PlatformIO to build this.  http://platformio.org/
 
 * Install that and let it update itself on first startup
-* Once updated and restarted open a  you can add the ESPAsyncTCP & ESPAsyncWebServer libraries by opening a terminal and entering "pio lib install 306"
+* Once updated and restarted, add the ESPAsyncTCP & ESPAsyncWebServer libraries by opening a terminal and entering "pio lib install 306"
 * Next clone the "mobile-rr" project to a folder and open the project in PlatformIO
 * Then build it by clicking the checkmark icon on the toolbar
 
