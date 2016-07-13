@@ -24,8 +24,8 @@ I use PlatformIO to build this.  http://platformio.org/
 * USB battery pack with micro-usb cable to power everything
 
 ## Wiring
-Connect the '+' lead of the piezo to GPIO 4 (D2 on WeMos D1 Mini) and '-' lead to Ground
-I chose GPIO 4 because I put installed the long leads with the headers on the WeMos D1 Mini and the spacing from ground was perfect to just plug the buzzer in direct between G & D2
+Connect the '+' lead of the piezo to GPIO 4 (D2 on WeMos D1 Mini) and '-' lead to Ground. 
+I chose GPIO 4 because I installed the long leads with the headers on the WeMos D1 Mini. The spacing from ground was perfect to just plug the buzzer in direct between G & D2.
 
 ## References
 I learned everything I needed to create this from these projects
