@@ -1,13 +1,32 @@
 # ESP8266 Mobile Rick Roll Captive Portal
-- User connects thinking it is a free WiFi access point
-- After accepting Terms of Service they are Rick Roll'd
+The purpose of this project was to help me get familiar with programming for the ESP8266 and have a bit of fun.
+
+* User connects to the device broadcasting an SSID of "FREE Highspeed WiFi" (this is configurable of course)
+* The captive portal helper on their phone/table/computer kicks in and presents them with a page showing "Terms of Service" and a button labeled "I Accept"
+* When they click the button a full screen animated GIF of Rick Astley dancing appears and an audio clip of "Never Gonna Give You Up" starts playing on loop and a message in the bottom right letting them know they got rock rolled (Incase they don't understand what's going on)
 
 To access the console, connect to the ESP8266 Access Point and browse to "http://10.10.10.1/console".
 From here you can monitor all connections and see when someone gets Rick Roll'd by the device.
 
-The purpose of this project was to help me get familiar with programming for the ESP8266 and have a bit of fun.
+## Compiling
+I use PlatformIO to build this.  http://platformio.org/
 
-References (I learned everything I needed to create this from these projects)
+* Install that and let it update itself on first startup
+* Once updated and restarted open a  you can add the ESPAsyncTCP & ESPAsyncWebServer libraries by opening a terminal and entering "pio lib install 306"
+* Next clone the "mobile-rr" project to a folder and open the project in PlatformIO
+* Then build it by clicking the checkmark icon on the toolbar
+
+## Parts List
+* ESP-8266 Module with 4MB of flash  (I used the WeMos D1 Mini) (http://www.aliexpress.com/snapshot/7833150367.html?orderId=76398745536320)
+* Piezo buzzer (http://www.aliexpress.com/snapshot/7762649061.html?orderId=75910217556320)
+* USB battery pack with micro-usb cable to power everything
+
+## Wiring
+Connect the '+' lead of the piezo to GPIO 4 (D2 on WeMos D1 Mini) and '-' lead to Ground
+
+## References
+I learned everything I needed to create this from these projects
+
 - PlatformIO - http://platformio.org/ <br>
              http://docs.platformio.org/en/latest/platforms/espressif.html#uploading-files-to-file-system-spiffs
 - ESP8266 Captive Portal - https://www.hackster.io/rayburne/esp8266-captive-portal-5798ff
