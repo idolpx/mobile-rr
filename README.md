@@ -3,7 +3,7 @@ The purpose of this project was to help me get familiar with programming for the
 
 * User connects to the device broadcasting an SSID of "FREE Highspeed WiFi" (this is configurable of course)
 * The captive portal helper on their phone/table/computer kicks in and presents them with a page showing "Terms of Service" and a button labeled "I Accept"
-* When they click the button a full screen animated GIF of Rick Astley dancing appears and an audio clip of "Never Gonna Give You Up" starts playing on loop and a message in the bottom right letting them know they got rock rolled (Incase they don't understand what's going on)
+* When they click the button a full screen animated GIF of Rick Astley dancing appears and an audio clip of "Never Gonna Give You Up" starts playing on loop along with a message in the bottom right letting them know they got rock rolled (Incase they don't understand what's going on)
 
 To access the console, connect to the ESP8266 Access Point and browse to "http://10.10.10.1/console".
 From here you can monitor all connections and see when someone gets Rick Roll'd by the device.
