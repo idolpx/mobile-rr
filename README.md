@@ -13,12 +13,12 @@ The console also allows you to enter commands to get more info about the status 
 ## Build Firmware
 I use PlatformIO to build this.  http://platformio.org/
 
-* Install that and let it update itself on first startup
-* Once updated and restarted, add the ESPAsyncTCP & ESPAsyncWebServer libraries by opening a terminal and entering "pio lib install 306"
+* Install PlatformIO and let it update itself on first startup
+* Once updated and restarted, clone the "mobile-rr" project to a folder and open the project in PlatformIO
+* Next add the ESPAsyncTCP & ESPAsyncWebServer libraries by opening a terminal and entering "pio lib install 306"
 
 ![Install Libraries](https://s20.postimg.org/o9hjq4fz1/instlal_libraries.png)
 
-* Next clone the "mobile-rr" project to a folder and open the project in PlatformIO
 * Then build it by clicking the checkmark icon on the toolbar
 
 ![Build Firmware](https://s20.postimg.org/e9mna84pp/build_firmware.png)
@@ -28,11 +28,13 @@ After your firmware build is successful you can upload it by clicking the arrow 
 
 ![Upload Firmware](https://s20.postimg.org/ue4gppiot/upload_firmware.png)
 
-You can add/edit the files in the "data" folder to your liking and follow the instructions in the following along below to build and upload the SPIFFS file system image to your ESP8266.
+You can add/edit the files in the "data" folder to your liking and follow the instructions in the following along below to build and upload the SPIFFS file system image to your ESP8266. 
 
 ![Upload SPIFFS 1](https://s20.postimg.org/6kl7kreu5/image.png)
 
 ![Upload SPIFFS 2](https://s20.postimg.org/vrw3l0hy5/image.png)
+
+**Note: Anytime you make changes to the firmware or the data you can rebuild and upload either without the need to install the again. They reside in different areas of the flash memory.**
 
 ## Parts List
 * ESP-8266 Module with 4MB of flash  (I used the WeMos D1 Mini) (http://www.aliexpress.com/snapshot/7833150367.html?orderId=76398745536320)
