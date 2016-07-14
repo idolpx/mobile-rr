@@ -10,6 +10,15 @@ To access the console, connect to the ESP8266 Access Point and browse to "http:/
 From here you can monitor all connections and see when someone gets Rick Roll'd by the device.
 The console also allows you to enter commands to get more info about the status of the device, change the SSID and even beep the buzzer.
 
+## Parts List
+* ESP8266 Module with 4MB of flash  (I used the WeMos D1 Mini) (http://www.aliexpress.com/snapshot/7833150367.html?orderId=76398745536320)
+* Piezo buzzer (http://www.aliexpress.com/snapshot/7762649061.html?orderId=75910217556320)
+* USB battery pack with micro-usb cable to power everything
+
+## Wiring
+Connect the '+' lead of the piezo to GPIO 4 (D2 on WeMos D1 Mini) and '-' lead to Ground. 
+I chose GPIO 4 because I installed the long leads with the headers on the WeMos D1 Mini. The spacing from ground was perfect to just plug the buzzer in direct between G & D2.
+
 ## Build Firmware
 I use PlatformIO to build this.  http://platformio.org/
 
@@ -35,15 +44,6 @@ You can add/edit the files in the "data" folder to your liking. Then follow the 
 ![Upload SPIFFS 2](https://s20.postimg.org/vrw3l0hy5/image.png)
 
 **Note: Anytime you make changes to the firmware or the data you can rebuild and upload either without the need to install the again. They reside in different areas of the flash memory.**
-
-## Parts List
-* ESP-8266 Module with 4MB of flash  (I used the WeMos D1 Mini) (http://www.aliexpress.com/snapshot/7833150367.html?orderId=76398745536320)
-* Piezo buzzer (http://www.aliexpress.com/snapshot/7762649061.html?orderId=75910217556320)
-* USB battery pack with micro-usb cable to power everything
-
-## Wiring
-Connect the '+' lead of the piezo to GPIO 4 (D2 on WeMos D1 Mini) and '-' lead to Ground. 
-I chose GPIO 4 because I installed the long leads with the headers on the WeMos D1 Mini. The spacing from ground was perfect to just plug the buzzer in direct between G & D2.
 
 ## References
 I learned everything I needed to create this from these projects
