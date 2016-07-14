@@ -15,6 +15,9 @@ I use PlatformIO to build this.  http://platformio.org/
 
 * Install that and let it update itself on first startup
 * Once updated and restarted, add the ESPAsyncTCP & ESPAsyncWebServer libraries by opening a terminal and entering "pio lib install 306"
+
+![Install Libraries](https://s20.postimg.org/o9hjq4fz1/instlal_libraries.png)
+
 * Next clone the "mobile-rr" project to a folder and open the project in PlatformIO
 * Then build it by clicking the checkmark icon on the toolbar
 
@@ -25,7 +28,7 @@ After your firmware build is successful you can upload it by clicking the arrow 
 
 ![Upload Firmware](https://s20.postimg.org/ue4gppiot/upload_firmware.png)
 
-You can edit the files in the "data" folder and follow the instructions in the following images to build and upload the SPIFFS file system image to your ESP8266.
+You can add/edit the files in the "data" folder to your liking and follow the instructions in the following along below to build and upload the SPIFFS file system image to your ESP8266.
 
 ![Upload SPIFFS 1](https://s20.postimg.org/6kl7kreu5/image.png)
 
