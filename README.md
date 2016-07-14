@@ -28,7 +28,7 @@ After your firmware build is successful you can upload it by clicking the arrow 
 
 ![Upload Firmware](https://s20.postimg.org/ue4gppiot/upload_firmware.png)
 
-You can add/edit the files in the "data" folder to your liking and follow the instructions in the following along below to build and upload the SPIFFS file system image to your ESP8266. 
+You can add/edit the files in the "data" folder to your liking. Then follow the instructions below to build and upload the SPIFFS file system image to your ESP8266. 
 
 ![Upload SPIFFS 1](https://s20.postimg.org/6kl7kreu5/image.png)
 
