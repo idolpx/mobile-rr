@@ -43,7 +43,7 @@ You can add/edit the files in the "data" folder to your liking. Then follow the 
 
 ![Upload SPIFFS 2](https://s20.postimg.org/vrw3l0hy5/image.png)
 
-**Note: Anytime you make changes to the firmware or the data you can rebuild and upload either without the need to install the again. They reside in different areas of the flash memory.**
+**Note: Anytime you make changes to the firmware or the data you can rebuild and upload either without the need to install the other again. They reside in different areas of the flash memory.**
 
 ## References
 I learned everything I needed to create this from these projects
