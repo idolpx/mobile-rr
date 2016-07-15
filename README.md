@@ -1,6 +1,8 @@
 # ESP8266 Mobile Rick Roll Captive Portal
 The purpose of this project was to help me get familiar with programming for the ESP8266 and have a bit of fun.
 
+[![ESP8266 Mobile-RR](https://i.ytimg.com/vi/ZpcRZoXQAzM/hqdefault.jpg)](https://www.youtube.com/watch?v=ZpcRZoXQAzM)
+
 * User connects to the device broadcasting an SSID of "FREE Highspeed WiFi" (this is configurable of course)
 * The captive portal helper on their phone/table/computer kicks in and presents them with a page showing "Terms of Service" and a button labeled "I Accept"
 * When they click the button a full screen animated GIF of Rick Astley dancing appears and an audio clip of "Never Gonna Give You Up" starts playing on loop along with a message in the bottom right letting them know they got rock rolled (Incase they don't understand what's going on)
@@ -61,6 +63,3 @@ I learned everything I needed to create this from these projects
 - Piezo Beep - http://framistats.com/2015/06/07/esp8266-arduino-smtp-server-part-2/
 - Simple Audio Board - http://bitcows.com/?p=19
 - Tone Doesn't Work - https://www.reddit.com/r/esp8266/comments/46kw38/esp8266_calling_tone_function_does_not_work/
-
-I still need to make a video to demo this project and I want to add a few more features.
-It is fully functional now though. Let me know what you think.
