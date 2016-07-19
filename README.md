@@ -12,6 +12,8 @@ To access the console, connect to the ESP8266 Access Point and browse to "http:/
 From here you can monitor all connections and see when someone gets Rick Roll'd by the device.
 The console also allows you to enter commands to get more info about the status of the device, change the SSID, get the Rick Roll count and even beep the buzzer.
 
+The "debug" setting is on by default and shows you all DNS and HTTP requests made to the device. It's kind of cool to see all the sites that the apps on your phone are trying to access. Check out the screenshots of the console for a glimpse of what it looks like. Some apps are very noisy. You can toggle the "debug" off to not see that stuff.
+
 ## Parts List
 * ESP8266 Module with 4MB of flash  (I used the WeMos D1 Mini) (http://www.aliexpress.com/snapshot/7833150367.html?orderId=76398745536320)
 * Piezo buzzer (http://www.aliexpress.com/snapshot/7762649061.html?orderId=75910217556320)
