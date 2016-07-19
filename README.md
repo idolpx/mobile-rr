@@ -10,7 +10,7 @@ The purpose of this project was to help me get familiar with programming for the
 On bootup, the buzzer plays a little bit of "Never Gonna Give You Up".
 To access the console, connect to the ESP8266 Access Point and browse to "http://10.10.10.1/console".
 From here you can monitor all connections and see when someone gets Rick Roll'd by the device.
-The console also allows you to enter commands to get more info about the status of the device, change the SSID and even beep the buzzer.
+The console also allows you to enter commands to get more info about the status of the device, change the SSID, get the Rick Roll count and even beep the buzzer.
 
 ## Parts List
 * ESP8266 Module with 4MB of flash  (I used the WeMos D1 Mini) (http://www.aliexpress.com/snapshot/7833150367.html?orderId=76398745536320)
