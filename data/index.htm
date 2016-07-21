@@ -85,7 +85,7 @@
         }
     </style>
 </head>
-<body>
+<body onload="show()">
     <div style='min-height:700px;'>
         <div id='l'>FREE Highspeed WiFi Provided by
             <br><img src='l.png' style='display:block;margin:auto;' width='100%'>
@@ -120,9 +120,7 @@ The service and any products or services provided on or in connection with the s
             trigger();
         }, false);
 
-        document.addEventListener("DOMContentLoaded", function() {
-            b.style.display = "block"
-        }, false);
+        function show() { b.style.display = "block" }
 
         function trigger()
         {
