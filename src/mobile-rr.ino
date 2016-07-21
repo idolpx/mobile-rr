@@ -420,6 +420,11 @@ void setupHTTPServer()
 		beepC ( 200 );
 	} );
 
+	httpd.on ( "/count", HTTP_GET, [] ( AsyncWebServerRequest * request )
+	{
+		request->send ( 200, "text/html", String ( rrcount ) ) ;
+	} );
+
 	// attach AsyncWebSocket
 	dbg_printf ( "Starting Websocket Console" ) ;
 	ws.onEvent ( onEvent );
