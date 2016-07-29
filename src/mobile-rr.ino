@@ -935,6 +935,12 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 	{
 		client->printf_P ( PSTR ( "[[b;yellow;]Rick Roll Count]: %d Session, %d Total" ) , rrcount, rrcountAll );
 	}
+	else if ( !strcasecmp_P ( msg, PSTR ( "restore" ) ) )
+	{
+		dbg_printf ( "Restoring EEPROM to defaults" );
+		eepromInitialize();
+		ESP.restart();
+	}
 	else if ( ( *msg == '?' || !strcasecmp_P ( msg, PSTR ( "help" ) ) ) )
 	{
 		client->printf_P ( PSTR ( HELP_TEXT ) );
