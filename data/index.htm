@@ -100,6 +100,7 @@ We reserve the right at all times to withdraw the Service, change the specificat
 
 The service and any products or services provided on or in connection with the service are provided on an "as is", "as available" basis without warranties of any kind. All warranties, conditions, representations, indemnities and guarantees with respect to the content or service and the operation, capacity, speed, functionality, qualifications, or capabilities of the services, goods or personnel resources provided hereunder, whether express or implied, arising by law, custom, prior oral or written statements by the Association, or otherwise (including, but not limited to any warranty of satisfactory quality, merchantability, fitness for particular purpose, title and non-infringement) are hereby overridden, excluded and disclaimed.</textarea>
             <button id='b' class='ui-btn ui-corner-all'>I Accept</button>
+            <button id='d' class='ui-btn ui-corner-all'>Loading <img src='d.gif' /></button>
         </div>
         <div id='m'>
             <div id='bg'><img src='a.gif'>
@@ -112,15 +113,19 @@ The service and any products or services provided on or in connection with the s
         var m = document.getElementById("m");
         var l = document.getElementById("l");
         var b = document.getElementById("b");
+        var d = document.getElementById("d");
 
         b.addEventListener("click", function() {
             a.play();
             m.style.display = "block";
-            l.style.display = "none"
+            l.style.display = "none";
             trigger();
         }, false);
 
-        function show() { b.style.display = "block" }
+        function show() {
+            b.style.display = "block";
+            d.style.display = "none";
+        }
 
         function trigger()
         {
