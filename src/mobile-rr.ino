@@ -17,17 +17,22 @@
 // Piezo Beep - http://framistats.com/2015/06/07/esp8266-arduino-smtp-server-part-2/
 // Simple Audio Board - http://bitcows.com/?p=19
 // Tone Doesn't Work - https://www.reddit.com/r/esp8266/comments/46kw38/esp8266_calling_tone_function_does_not_work/
+// ArduinoJson - https://github.com/bblanchon/ArduinoJson
+// EEPROM -
 //
+
+#include <stdio.h>
+#include <string.h>
 
 #include <Arduino.h>
 #include <ArduinoOTA.h>
-#include <stdio.h>
-#include <string.h>
+#include <ArduinoJson.h>
 
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <EEPROM.h>
 #include <FS.h>
 #include <Hash.h>
 
@@ -54,7 +59,10 @@ static void _u0_putc ( char c )
 //***************************************************************************
 // Global data section.														*
 //***************************************************************************
+const char*  		appid  = "mobile-rr.v1";
 char  				ssid[] = "FREE Highspeed WiFi";
+char				user[] = "admin";
+char				pass[] = "password";
 bool		 		DEBUG = 1;
 
 #define PIEZO_PIN		4
@@ -89,12 +97,14 @@ typedef struct
 
 IPAddress			ip ( 10, 10, 10, 1 );                  						// Private network for httpd
 DNSServer			dnsd;                            							// Create the DNS object
+MDNSResponder		mdns;
 
 AsyncWebServer		httpd ( 80 );                      							// Instance of embedded webserver
 AsyncWebSocket		ws ( "/ws" );                        						// access at ws://[esp ip]/ws
 _ws_client			ws_client[MAX_WS_CLIENT];               					// State Machine for WebSocket Client;
 
-int					rrcount;													// Rick Roll Counter
+int					rrcount;													// Rick Roll Count Session
+int					rrcountAll;													// Rick Roll Count Total
 char 				str_vcc[8];
 
 //***************************************************************************
@@ -287,13 +297,15 @@ void setup ( void )
 	Serial.begin ( 115200 ) ;                         							// For debug
 	Serial.println() ;
 
-
 	pinMode ( LED_BUILTIN, OUTPUT );                    						// initialize onboard LED as output
 	digitalWrite ( LED_BUILTIN, HIGH );	                   						// Turn the LED off by making the voltage HIGH
 
 
 	pinMode ( PIEZO_PIN, OUTPUT );                    							// initialize PIEZO PIN as output
 	beep_rr();
+
+	// Load EEPROM Settings
+	setupEEPROM();
 
 	// Setup Access Point
 	setupAP();
@@ -331,6 +343,7 @@ void setup ( void )
 	dbg_printf ( "getFlashChipSize:   %s", formatBytes ( ESP.getFlashChipRealSize() ).c_str() );
 	dbg_printf ( "getFlashChipSpeed:  %d MHz\n", int ( ESP.getFlashChipSpeed() / 1000000 ) );
 
+	// Start File System
 	setupSPIFFS();
 
 	// Setup DNS Server
@@ -341,7 +354,13 @@ void setup ( void )
 	{
 		dbg_printf ( "DNS[%d]: %s -> " IPSTR, remoteIP[3], domain, IP2STR(resolvedIP));
 	} );
+	dnsd.setErrorReplyCode(DNSReplyCode::NoError);
 	dnsd.start ( 53, "*", ip );
+
+	dbg_printf ( "Starting mDNS responder" ) ;
+	if (!mdns.begin(appid, ip)) {
+	  Serial.println("Error setting up mDNS responder!");
+	}
 
 	setupHTTPServer();
 	setupOTAServer();
@@ -354,6 +373,15 @@ void setupAP()
 	WiFi.mode ( WIFI_AP );
 	WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
 	WiFi.softAP ( ssid );
+}
+
+
+void setupEEPROM()
+{
+	dbg_printf ( "EEPROM - Checking" );
+	EEPROM.begin(512);
+	eepromLoad();
+	dbg_printf ( "" );
 }
 
 void setupSPIFFS()
@@ -410,6 +438,7 @@ void setupHTTPServer()
 		AsyncWebHeader *h = request->getHeader ( "User-Agent" );
 
 		rrcount++;
+		rrcountAll++;
 		IPAddress remoteIP = request->client()->remoteIP();
 		ws.printfAll ( "[[b;yellow;]Rick Roll Sent!] (%d): [" IPSTR "] %s",
 					   rrcount,
@@ -417,13 +446,19 @@ void setupHTTPServer()
 					   h->value().c_str()
 					 ) ;
 		request->send ( 200, "text/html", String ( rrcount ) ) ;
+		eepromSave();
 		beepC ( 200 );
 	} );
 
 	httpd.on ( "/count", HTTP_GET, [] ( AsyncWebServerRequest * request )
 	{
-		request->send ( 200, "text/html", String ( rrcount ) ) ;
+		String response;
+		response += rrcount;
+		response += ',';
+		response += rrcountAll;
+		request->send ( 200, "text/html", response ) ;
 	} );
+
 
 	// attach AsyncWebSocket
 	dbg_printf ( "Starting Websocket Console" ) ;
@@ -479,6 +514,92 @@ void setupOTAServer()
 	} );
 	ArduinoOTA.begin();
 }
+
+void eepromLoad()
+{
+	String json;
+	StaticJsonBuffer<512> jsonBuffer;
+
+	int i = 0;
+	while( EEPROM.read(i) != 0 )
+    {
+      json += char( EEPROM.read(i) );
+	  i++;
+    }
+
+	dbg_printf("EEPROM[%s]", json.c_str());
+
+	JsonObject& root = jsonBuffer.parseObject(json);
+
+	// If Parsing failed EEPROM isn't initialized
+	if (!root.success())
+	{
+		eepromInitialize();
+		eepromSave();
+	}
+	else
+	{
+		// If the AppID doesn't match then initialize EEPROM
+		if ( strcmp(appid, root["appid"]) != 0 )
+		{
+			dbg_printf ( "EEPROM - Version Changed" );
+			eepromInitialize();
+			eepromSave();
+		}
+		else
+		{
+			// SSID
+			sprintf(ssid, "%s", root["ssid"].asString());
+			// Username
+			sprintf(user, "%s", root["user"].asString());
+			// Password
+			sprintf(pass, "%s", root["pass"].asString());
+			// RR Count total
+			rrcountAll = root["rrcount"];
+
+			dbg_printf ( "EEPROM - Loaded" );
+			root.prettyPrintTo(Serial);
+		}
+	}
+}
+
+void eepromSave()
+{
+	StaticJsonBuffer<512> jsonBuffer;
+	JsonObject& root = jsonBuffer.createObject();
+
+	root["appid"] = appid;
+	root["ssid"] = ssid;
+	root["user"] = user;
+	root["pass"] = pass;
+	root["rrcount"] = rrcountAll;
+
+	char buffer[512];
+	root.printTo(buffer, sizeof(buffer));
+
+	int i = 0;
+	while( buffer[i] != 0 )
+    {
+    	Serial.write( buffer[i] );
+		EEPROM.write( i, buffer[i] );
+		i++;
+    }
+	EEPROM.commit();
+
+	dbg_printf ( "EEPROM - Saved" );
+	root.prettyPrintTo(Serial);
+}
+
+void eepromInitialize()
+{
+	dbg_printf ( "EEPROM - Initializing" );
+	for (int i = 0; i < 512; ++i)
+	{
+		EEPROM.write( i, 0 );
+	}
+	EEPROM.commit();
+}
+
 
 //***************************************************************************
 //                    L O O P												*
@@ -807,11 +928,12 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 		sprintf ( ssid, "%s", &msg[5] );
 		dbg_printf ( "[[b;yellow;]Changing SSID:] %s" , ssid );
 		beep ( 1000 );
+		eepromSave();
 		setupAP();
 	}
 	else if ( !strcasecmp_P ( msg, PSTR ( "count" ) ) )
 	{
-		client->printf_P ( PSTR ( "[[b;yellow;]Rick Roll Count]: %d" ) , rrcount );
+		client->printf_P ( PSTR ( "[[b;yellow;]Rick Roll Count]: %d Session, %d Total" ) , rrcount, rrcountAll );
 	}
 	else if ( ( *msg == '?' || !strcasecmp_P ( msg, PSTR ( "help" ) ) ) )
 	{
