@@ -59,11 +59,13 @@ static void _u0_putc ( char c )
 //***************************************************************************
 // Global data section.														*
 //***************************************************************************
-const char*  		appid  = "mobile-rr.v1";
-char  				ssid[] = "FREE Highspeed WiFi";
-char				user[] = "admin";
-char				pass[] = "password";
-bool		 		DEBUG = 1;
+float				version = 1.2;
+const char*  		appid   = "mobile-rr";
+char  				ssid[]  = "FREE Highspeed WiFi";
+char				user[]  = "admin";
+char				pass[]  = "password";
+bool		 		DEBUG   = 1;
+bool				SILENT  = 0;
 
 #define PIEZO_PIN		4
 
@@ -76,13 +78,16 @@ bool		 		DEBUG = 1;
 #define HELP_TEXT "[[b;green;]ESP8266 Mobile Rick Roll]\n" \
                   "------------------------\n" \
                   "[[b;cyan;]?] or [[b;cyan;]help] show this help\n" \
-				  "[[b;cyan;]beep n]    sound piezo for 'n' ms\n" \
+				  "[[b;cyan;]beep n/rr] sound piezo for 'n' ms\n" \
                   "[[b;cyan;]count]     show Rick Roll count\n" \
 				  "[[b;cyan;]debug]     toggle debug output\n" \
+				  "[[b;cyan;]eeprom]    show eeprom contents\n" \
                   "[[b;cyan;]info]      show system information\n" \
                   "[[b;cyan;]ls]        list SPIFFS files\n" \
                   "[[b;cyan;]ping]      send ping command\n" \
                   "[[b;cyan;]reboot]    reboot system\n" \
+				  "[[b;cyan;]restore]   restore default settings\n" \
+				  "[[b;cyan;]silent]    toggle silent mode\n" \
 				  "[[b;cyan;]ssid 's']  change ssid to 's'\n" \
                   "[[b;cyan;]who]       show all clients connected\n" \
                   "[[b;cyan;]whoami]    show your client #"
@@ -221,7 +226,7 @@ void beep_rr( bool multiplier = false )
 	if (multiplier)
 		tempo = tempo * 100000;
 
-	dbg_printf("Tempo %d\n", tempo);
+	//dbg_printf("Tempo %d\n", tempo);
 
 	int i, duration;
 
@@ -300,22 +305,21 @@ void setup ( void )
 	pinMode ( LED_BUILTIN, OUTPUT );                    						// initialize onboard LED as output
 	digitalWrite ( LED_BUILTIN, HIGH );	                   						// Turn the LED off by making the voltage HIGH
 
-
-	pinMode ( PIEZO_PIN, OUTPUT );                    							// initialize PIEZO PIN as output
-	beep_rr();
-
-	// Load EEPROM Settings
-	setupEEPROM();
-
-	// Setup Access Point
-	setupAP();
-	WiFi.softAPmacAddress ( mac );
-
 	// Startup Banner
 	dbg_printf (
 		"--------------------\n"
 		"ESP8266 Mobile Rick Roll Captive Portal\n"
 	);
+
+	// Load EEPROM Settings
+	setupEEPROM();
+
+	pinMode ( PIEZO_PIN, OUTPUT );                    							// initialize PIEZO PIN as output
+	if ( !SILENT ) beep_rr();
+
+	// Setup Access Point
+	setupAP();
+	WiFi.softAPmacAddress ( mac );
 
 	// Show Soft AP Info
 	dbg_printf (
@@ -447,7 +451,7 @@ void setupHTTPServer()
 					 ) ;
 		request->send ( 200, "text/html", String ( rrcount ) ) ;
 		eepromSave();
-		beepC ( 200 );
+		if ( !SILENT ) beepC ( 200 );
 	} );
 
 	httpd.on ( "/count", HTTP_GET, [] ( AsyncWebServerRequest * request )
@@ -476,7 +480,7 @@ void setupOTAServer()
 	// ArduinoOTA.setPort(8266);
 
 	// Hostname defaults to esp8266-[ChipID]
-	ArduinoOTA.setHostname("mobile-rr");
+	ArduinoOTA.setHostname( appid );
 
 	// No authentication by default
 	// ArduinoOTA.setPassword((const char *)"123");
@@ -527,7 +531,7 @@ void eepromLoad()
 	  i++;
     }
 
-	dbg_printf("EEPROM[%s]", json.c_str());
+	//dbg_printf("EEPROM[%s]", json.c_str());
 
 	JsonObject& root = jsonBuffer.parseObject(json);
 
@@ -539,27 +543,26 @@ void eepromLoad()
 	}
 	else
 	{
+		// Load Settings from JSON
+		sprintf(ssid, "%s", root["ssid"].asString());
+		sprintf(user, "%s", root["user"].asString());
+		sprintf(pass, "%s", root["pass"].asString());
+
+		DEBUG = root["debug"];
+		SILENT = root["silent"];
+		rrcountAll = root["rrcount"];
+
 		// If the AppID doesn't match then initialize EEPROM
-		if ( strcmp(appid, root["appid"]) != 0 )
+		if ( version != root.get<float>("version") )
 		{
 			dbg_printf ( "EEPROM - Version Changed" );
 			eepromInitialize();
 			eepromSave();
+			dbg_printf ( "EEPROM - Upgraded" );
 		}
-		else
-		{
-			// SSID
-			sprintf(ssid, "%s", root["ssid"].asString());
-			// Username
-			sprintf(user, "%s", root["user"].asString());
-			// Password
-			sprintf(pass, "%s", root["pass"].asString());
-			// RR Count total
-			rrcountAll = root["rrcount"];
 
-			dbg_printf ( "EEPROM - Loaded" );
-			root.prettyPrintTo(Serial);
-		}
+		dbg_printf ( "EEPROM - Loaded" );
+		root.prettyPrintTo(Serial);
 	}
 }
 
@@ -568,10 +571,13 @@ void eepromSave()
 	StaticJsonBuffer<512> jsonBuffer;
 	JsonObject& root = jsonBuffer.createObject();
 
+	root["version"] = version;
 	root["appid"] = appid;
 	root["ssid"] = ssid;
 	root["user"] = user;
 	root["pass"] = pass;
+	root["debug"] = DEBUG;
+	root["silent"] = SILENT;
 	root["rrcount"] = rrcountAll;
 
 	char buffer[512];
@@ -580,10 +586,10 @@ void eepromSave()
 	int i = 0;
 	while( buffer[i] != 0 )
     {
-    	Serial.write( buffer[i] );
 		EEPROM.write( i, buffer[i] );
 		i++;
     }
+	EEPROM.write( i, buffer[i] );
 	EEPROM.commit();
 
 	dbg_printf ( "EEPROM - Saved" );
@@ -807,11 +813,24 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 		DEBUG = !DEBUG;
 		if ( DEBUG )
 		{
-			client->printf_P ( PSTR ( "[[b;green;]Debug output enabled]" ) );
+			client->printf_P ( PSTR ( "[[b;green;]DEBUG output enabled]" ) );
 		}
 		else
 		{
-			client->printf_P ( PSTR ( "[[b;red;]Debug output disabled]" ) );
+			client->printf_P ( PSTR ( "[[b;yellow;]DEBUG output disabled]" ) );
+		}
+
+	}
+	else if ( !strcasecmp_P ( msg, PSTR ( "silent" ) ) )
+	{
+		SILENT = !SILENT;
+		if ( SILENT )
+		{
+			client->printf_P ( PSTR ( "[[b;green;]SILENT mode enabled]" ) );
+		}
+		else
+		{
+			client->printf_P ( PSTR ( "[[b;yellow;]SILENT mode disabled]" ) );
 		}
 
 	}
@@ -911,14 +930,14 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 	{
 		if (strstr(msg, "rr"))
 		{
-			dbg_printf ( "[[b;green;]NEVER GONNA GIVE YOU UP!]" );
+			client->printf_P ( PSTR ( "[[b;green;]NEVER GONNA GIVE YOU UP!]" ) );
 			beep_rr( true );
 		}
 		else
 		{
 			int v = atoi ( &msg[5] );
 			if ( v == 0 ) v = 50;
-			dbg_printf ( "[[b;yellow;]BEEP!] %dms" , v );
+			client->printf_P ( PSTR ( "[[b;yellow;]BEEP!] %dms" ) , v );
 			beep ( v );
 		}
 
@@ -926,18 +945,43 @@ void execCommand ( AsyncWebSocketClient * client, char * msg )
 	else if ( ( l > 5 && !strncasecmp_P ( msg, PSTR ( "ssid " ), 5 ) )  )
 	{
 		sprintf ( ssid, "%s", &msg[5] );
-		dbg_printf ( "[[b;yellow;]Changing SSID:] %s" , ssid );
-		beep ( 1000 );
+		client->printf_P ( PSTR ( "[[b;yellow;]Changing SSID:] %s" ) , ssid );
+		if ( !SILENT ) beep ( 500 );
 		eepromSave();
 		setupAP();
 	}
-	else if ( !strcasecmp_P ( msg, PSTR ( "count" ) ) )
+	else if ( ( l >= 5 && !strncasecmp_P ( msg, PSTR ( "count " ), 6 ) ) || !strcasecmp_P ( msg, PSTR ( "count" ) ) )
 	{
+		if ( l > 5 )
+		{
+			int v = atoi ( &msg[6] );
+			if ( v >= 0 )
+			{
+				rrcount = v;
+				rrcountAll = v;
+
+				if ( !SILENT ) beep ( 500 );
+				eepromSave();
+			}
+		}
+
 		client->printf_P ( PSTR ( "[[b;yellow;]Rick Roll Count]: %d Session, %d Total" ) , rrcount, rrcountAll );
+	}
+	else if ( !strcasecmp_P ( msg, PSTR ( "eeprom" ) ) )
+	{
+		String json;
+
+		int i = 0;
+		while( EEPROM.read(i) != 0 )
+	    {
+	      json += char( EEPROM.read(i) );
+		  i++;
+	    }
+		client->printf_P ( json.c_str() );
 	}
 	else if ( !strcasecmp_P ( msg, PSTR ( "restore" ) ) )
 	{
-		dbg_printf ( "Restoring EEPROM to defaults" );
+		client->printf_P ( PSTR ( "Restoring EEPROM to defaults" ) );
 		eepromInitialize();
 		ESP.restart();
 	}
