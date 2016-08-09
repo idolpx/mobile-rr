@@ -29,6 +29,7 @@ I use PlatformIO to build this.  http://platformio.org/
 * Install PlatformIO and let it update itself on first startup
 * Once updated and restarted, clone the "mobile-rr" project to a folder and open the project in PlatformIO
 * Next add the ESPAsyncTCP & ESPAsyncWebServer libraries by opening a terminal and entering "pio lib install 306"
+* You also need the Arduino JSON library. Enter "pio lib install 64" to install it.
 
 ![Install Libraries](https://s20.postimg.org/o9hjq4fz1/instlal_libraries.png)
 
