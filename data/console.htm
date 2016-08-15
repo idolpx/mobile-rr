@@ -1,110 +1,315 @@
+<!DOCTYPE html>
 <html>
-    <head>
-    <meta name = 'viewport' content = 'width=device-width,initial-scale=1'>
+
+<head>
+    <meta name='viewport' content='width=device-width,initial-scale=1'>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>ESP8266 Mobile Rick Roll</title>
-    <script src="jquery-1.12.3.js"></script>
-    <script src="terminal.js"></script>
-    <link href="terminal.css" rel="stylesheet"/>
-</head >
+    <script src="js/jquery.js"></script>
+    <script src="js/jquery.mobile.js"></script>
+    <link href="css/jquery.mobile.css" rel="stylesheet" />
+    <script src="js/terminal.js"></script>
+    <link href="css/terminal.css" rel="stylesheet" />
+    <style>
+        hr {
+            border-top: 3px dotted #8c8b8b !important
+        }
+
+        .ui-content {
+            padding: 0px
+        }
+
+        .ui-input-text {
+            margin: .5em !important
+        }
+
+        .terminal {
+            text-shadow: 0 0 0 !important
+        }
+
+        #controls {
+            display: none;
+            padding: 5px;
+        }
+
+        #drawer {
+            cursor: pointer
+        }
+
+        #cmdline {
+            padding: 5 0
+        }
+
+        #footer {
+            position: fixed;
+            width: 100%;
+            bottom: 0px;
+        }
+    </style>
+</head>
+
 <body>
-<script>
-    jQuery ( document ).ready ( function ( $ )
-    {
-    	var ws = null;
-    	var audio = document.createElement ( 'audio' );
-    	audio.setAttribute ( 'src', 'a.mp3' );
-    	audio.setAttribute ( 'autoplay', 'autoplay' );
-    	$.get();
-    	audio.addEventListener ( "load", function()
-    	{
-    		audio.play();
-    	}, true );
+    <div data-role="page" id="gui">
+        <div data-role="header" id="header">
+            <a href="#info" data-icon="info" data-transition="flip">INFO</a>
+            <h1>ESP8266 Mobile Rick Roll</h1>
+            <a href="#settings" data-icon="gear" data-transition="flip" class="ui-btn-right">Settings</a>
+        </div>
+        <div data-role="content">
+            <div id="controls">
+                <div class="ui-grid-c ui-responsive">
+                    <div class="ui-block-a">
+                        <button class="command ui-corner-all" data-mini="true" value="help">HELP</button>
+                    </div>
+                    <div class="ui-block-b">
+                        <button class="command ui-corner-all" data-mini="true" value="info">INFO</button>
+                    </div>
+                    <div class="ui-block-c">
+                        <button class="command ui-corner-all" data-mini="true" value="eeprom">EEPROM</button>
+                    </div>
+                    <div class="ui-block-d">
+                        <button class="command ui-corner-all" data-mini="true" value="ls">LS</button>
+                    </div>
+                </div>
+                <div class="ui-grid-c ui-responsive">
+                    <div class="ui-block-a">
+                        <input type="text" value="50" />
+                    </div>
+                    <div class="ui-block-b">
+                        <button class="command ui-corner-all" data-mini="true" value="beep 50">BEEP</button>
+                    </div>
+                    <div class="ui-block-c">
+                        <button class="command ui-corner-all" data-mini="true" value="beep rr">BEEP RR</button>
+                    </div>
+                    <div class="ui-block-d">
+                        <button class="command ui-corner-all" data-mini="true" value="count">COUNT</button>
+                    </div>
+                </div>
+            </div>
+            <div id="drawer">
+                <hr />
+                <hr />
+            </div>
+            <div id="console"></div>
+        </div>
+        <div data-role="footer" id="footer">
+            <input id="cmdline" type="text" data-mini="true" placeholder="Enter command here" />
+        </div>
+    </div>
 
-    	// Stop WebSocket
-    	function stopWS()
-    	{
-    		// Close WS if already opened
-    		if ( ws )
-    		{
-    			ws.close();
-    			ws = null;
-    		}
-    	}
-    	// Start WebSocket
-    	function startWS ( url )
-    	{
-    		if ( url == undefined )
-    			url = document.location.host;
+    <div data-role="page" id="info">
+        <div data-role="header">
+            <h1>ESP8266 Mobile Rick Roll</h1>
+            <a data-rel="back" data-icon="back" data-transition="slide" data-direction="reverse">Back</a>
+        </div>
+        <div data-role="content">
+            <div class="ui-field-contain">
+                <label for="textarea">Textarea:</label>
+                <textarea name="textarea" id="textarea"></textarea>
+            </div>
+        </div>
+    </div>
 
-    		stopWS();
-    		ws = new WebSocket ( 'ws://' + url + '/ws' );
-    		ws.binaryType = "arraybuffer";
-    		ws.onopen = function ( e )
-    		{
-    			term.echo ( "[[b;yellow;]Connected] to [[b;white;]" + url + "]" );
-    			term.set_prompt ( url + "[[;green;] #] " );
-    		};
-    		ws.onclose = function ( e )
-    		{
-    			term.echo ( "[[b;red;]Disconnected]" );
-    			term.set_prompt ( '[[;red;]>] ' );
+    <div data-role="page" id="settings">
+        <div data-role="header">
+            <h1>ESP8266 Mobile Rick Roll</h1>
+            <a data-rel="back" data-icon="back">Back</a>
+        </div>
+        <div data-role="content">
+            <div class="ui-field-contain">
+                <label for="ssid">SSID:</label>
+                <input type="text" name="ssid" id="ssid" data-mini="true">
+                <label for="username">Username:</label>
+                <input type="text" name="username" id="username" data-mini="true">
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" data-mini="true">
+                <label for="debug">Debug Mode:</label>
+                <select name="debug" id="debug" data-role="slider" data-mini="true">
+                    <option value="off">Off</option>
+                    <option value="on">On</option>
+                </select>
+                <label for="silent">Silent Mode:</label>
+                <select name="silent" id="silent" data-role="slider" data-mini="true">
+                    <option value="off">Off</option>
+                    <option value="on">On</option>
+                </select>
+                <label for="textarea">Textarea:</label>
+                <textarea name="textarea" id="textarea" data-mini="true"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var info;
+        var settings;
+
+        jQuery(document).ready(function($) {
+            var ws = null;
+            var audio = document.createElement('audio');
+            audio.setAttribute('src', 'media/a.mp3');
+            audio.setAttribute('autoplay', 'autoplay');
+            $.get();
+            audio.addEventListener("load", function() {
+                audio.play();
+            }, true);
+
+            // Stop WebSocket
+            function stopWS() {
+                // Close WS if already opened
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
+            }
+            // Start WebSocket
+            function startWS(url) {
+                if (url == undefined)
+                    url = document.location.host;
+
                 stopWS();
-    		};
-    		ws.onerror = function ( e )
-    		{
-    			term.echo ( "Error" );
-    		};
-    		ws.onmessage = function ( e )
-    		{
-    			var msg = "";
+                ws = new WebSocket('ws://' + url + '/ws');
+                ws.binaryType = "arraybuffer";
+                ws.onopen = function(e) {
+                    term.echo("[[b;yellow;]Connected] to [[b;white;]" + url + "]");
+                    term.set_prompt(url + "[[;green;] #] ");
+                };
+                ws.onclose = function(e) {
+                    term.echo("[[b;red;]Disconnected]");
+                    term.set_prompt('[[;red;]>] ');
+                    stopWS();
+                };
+                ws.onerror = function(e) {
+                    term.echo("Error");
+                };
+                ws.onmessage = function(e) {
+                    var msg = "";
 
-    			if ( e.data instanceof ArrayBuffer )
-    			{
-    				// WS binary in blue
-    				color = 'light';
-    				var bytes = new Uint8Array ( e.data );
+                    if (e.data instanceof ArrayBuffer) {
+                        // WS binary in blue
+                        color = 'light';
+                        var bytes = new Uint8Array(e.data);
 
-    				for ( var i = 0; i < bytes.length; i++ )
-    				{
-    					msg += String.fromCharCode ( bytes[i] );
-    				}
-    			}
-    			else
-    			{
-    				// WS text in green
-    				color = 'green';
-    				msg = e.data;
-    			}
+                        for (var i = 0; i < bytes.length; i++) {
+                            msg += String.fromCharCode(bytes[i]);
+                        }
+                    } else {
+                        // WS text in green
+                        color = 'green';
+                        msg = e.data;
+                    }
 
-    			term.echo ( msg );
+                    term.echo(msg);
 
-    			if ( msg.indexOf ( "Rick Roll Sent" ) > -1 )
-    				audio.play();
-    		};
-    	}
-    	var term = $ ( 'body' ).terminal ( function ( command, term )
-    	{
-            if ( ws == null )
-            {
-                startWS ( "10.10.10.1" );
+                    if (msg.indexOf("Rick Roll Sent") > -1)
+                        audio.play();
+                };
             }
-            else
-            {
-                ws.send ( command );
-            }
-    	},
-    	// Default terminal settings and greetings
-    	{
-            prompt: '[[;red;]>] ',
-            checkArity : false,
-            greetings: "===========================================\n" +
-                	   "=    ESP8266 Mobile Rick Roll Terminal    =\n" +
-                	   "===========================================\n"
-    	} );
+            var term = $('#console').terminal(function(command, term) {
+                    if (ws == null) {
+                        startWS("10.10.10.1");
+                    } else {
+                        ws.send(command);
+                    }
+                },
+                // Default terminal settings and greetings
+                {
+                    name: 'mobile-rr',
+                    prompt: '[[;red;]>] ',
+                    checkArity: false,
+                    greetings: "===========================================\n" +
+                        "=    ESP8266 Mobile Rick Roll Terminal    =\n" +
+                        "===========================================\n",
+                    onInit: function() {
+                        $(".terminal").css("text-shadow", "0 0 0 !important");
+                    }
+                });
 
-        startWS ( "10.10.10.1" );
+            // Button Bindings
+            $(".command").click(function() {
+                term.exec(this.value);
+            });
+            $("#cmdline").keypress(function(event) {
+                if (event.which == 13) {
+                    event.preventDefault();
+                    term.exec(this.value);
+                    this.value = "";
+                }
+            });
 
-    } );
-</script>
+            $("#drawer").click(function() {
+                $("#controls").animate({
+                    height: "toggle"
+                }, {
+                    duration: 300,
+                    complete: function() {
+                        $(window).resize();
+                    }
+                });
+            });
+
+            $("#console").dblclick(function() {
+                $("#header, #controls, #drawer, #footer").animate({
+                    height: "toggle"
+                }, {
+                    duration: 300,
+                    complete: function() {
+                        $(window).resize();
+                    }
+                });
+
+            });
+
+            //Load info and settings on page load
+            $(document).bind("pagebeforechange", function(e, data) {
+                var page = data.toPage.toString();
+                console.log("INFO: pagebeforechange to [" + page + "]");
+                if (page.indexOf("#info") > 0) {
+                    $.ajax({
+                            url: "http://10.10.10.1/info",
+                        })
+                        .done(function(data) {
+                            $("#info textarea").val(data);
+                            info = JSON.parse(data);
+                        });
+                }
+                if (page.indexOf("#settings") > 0) {
+                    $.ajax({
+                            url: "http://10.10.10.1/settings",
+                        })
+                        .done(function(data) {
+                            $("#settings textarea").val(data);
+                            settings = JSON.parse(data);
+                            $("#ssid").val(settings.ssid);
+                            $("#username").val(settings.username);
+                            $("#password").val(settings.password);
+
+                            v = ((settings.debug > 0) ? "on" : "off");
+                            $('#debug').val(v).slider("refresh");
+                            v = ((settings.silent > 0) ? "on" : "off");
+                            $('#silent').val(v).slider("refresh");
+                        });
+                }
+
+                var page = data.prevPage.attr("id");
+                console.log("INFO: pagebeforechange from [" + page + "]");
+
+            });
+
+            $(window).resize(function() {
+                if ($('#console').is(':visible') && ($('#footer').is(':visible'))) {
+                    $("#console").height($(window).height() - $("#console").position().top - $("#footer").outerHeight() - 20);
+                } else if ($('#console').is(':visible')) {
+                    $("#console").height($(window).height() - $("#console").position().top - 20);
+                }
+
+            });
+
+            startWS("10.10.10.1");
+            $(window).resize();
+
+        });
+    </script>
 </body>
+
 </html>
