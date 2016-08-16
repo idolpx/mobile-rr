@@ -237,7 +237,7 @@
                 }
             });
 
-            $("#drawer").click(function() {
+            $("#drawer").bind("tap", function() {
                 $("#controls").animate({
                     height: "toggle"
                 }, {
@@ -248,8 +248,8 @@
                 });
             });
 
-            $("#console").dblclick(function() {
-                $("#header, #controls, #drawer, #footer").animate({
+            $("#console").bind("tap", function() {
+                $("#header, #footer").animate({
                     height: "toggle"
                 }, {
                     duration: 300,

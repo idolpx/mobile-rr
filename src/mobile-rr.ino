@@ -60,13 +60,13 @@ static void _u0_putc ( char c )
 //***************************************************************************
 // Global data section.                                                     *
 //***************************************************************************
-float           version = 1.31;
-const char      *appid   = "mobile-rr";
-char            ssid[]  = "FREE Highspeed WiFi";
+float           version     = 1.31;
+const char      *appid      = "mobile-rr";
+char            ssid[]      = "FREE Highspeed WiFi";
 char            username[]  = "admin";
 char            password[]  = "password";
-bool            DEBUG   = 1;
-bool            SILENT  = 0;
+bool            DEBUG       = 1;
+bool            SILENT      = 0;
 
 #define PIEZO_PIN   4
 
