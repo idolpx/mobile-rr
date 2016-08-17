@@ -199,17 +199,64 @@
                         msg = e.data;
                     }
 
-                    term.echo(msg);
+                    if (msg.indexOf("Progress:") > -1)
+                    {
+                        i = parseInt(msg.substring(10))
+                        string = progress(i, 40);
+
+                        term.set_prompt(string);
+
+                        if ( i == 100)
+                            term.set_prompt(url + "[[;green;] #] ");
+                    }
+                    else
+                    {
+                        term.echo(msg);
+                    }
 
                     if (msg.indexOf("Rick Roll Sent") > -1)
                         audio.play();
+
+
                 };
+            }
+            function progress(percent, width) {
+                var size = Math.round(width*percent/100);
+                var left = '', taken = '', i;
+                for (i=size; i--;) {
+                    taken += '=';
+                }
+                if (taken.length > 0) {
+                    taken = taken.replace(/=$/, '>');
+                }
+                for (i=width-size; i--;) {
+                    left += ' ';
+                }
+                return '[' + taken + left + '] ' + percent + '%';
             }
             var term = $('#console').terminal(function(command, term) {
                     if (ws == null) {
                         startWS("10.10.10.1");
                     } else {
                         ws.send(command);
+                    }
+                    var cmd = $.terminal.parse_command(command);
+                    if (cmd.name == 'progress') {
+                        var i = 0, size = cmd.args[0];
+                        prompt = term.get_prompt();
+                        string = progress(0, size);
+                        term.set_prompt(progress);
+                        animation = true;
+                        (function loop() {
+                            string = progress(i++, size);
+                            term.set_prompt(string);
+                            if (i < 100) {
+                                timer = setTimeout(loop, 100);
+                            } else {
+                                term.echo(progress(i, size) + ' [[b;green;]OK]')
+                                    .set_prompt(prompt);
+                            }
+                        })();
                     }
                 },
                 // Default terminal settings and greetings

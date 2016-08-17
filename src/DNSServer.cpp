@@ -55,7 +55,7 @@ void DNSServer::processNextRequest()
     if (_dnsHeader->QR == DNS_QR_QUERY &&
         _dnsHeader->OPCode == DNS_OPCODE_QUERY &&
         requestIncludesOnlyOneQuestion() &&
-        (_domainName == "*" || getDomainNameWithoutWwwPrefix() == _domainName)
+        (_domainName == "*" || getDomainName() == _domainName)
        )
     {
       replyWithIP();
@@ -77,7 +77,8 @@ bool DNSServer::requestIncludesOnlyOneQuestion()
          _dnsHeader->ARCount == 0;
 }
 
-String DNSServer::getDomainNameWithoutWwwPrefix()
+
+String DNSServer::getDomainName( bool removeWWWPrefix )
 {
   String parsedDomainName = "";
   unsigned char *start = _buffer + 12;
@@ -97,7 +98,8 @@ String DNSServer::getDomainNameWithoutWwwPrefix()
     pos++;
     if (*(start + pos) == 0)
     {
-      downcaseAndRemoveWwwPrefix(parsedDomainName);
+      if (removeWWWPrefix)
+        downcaseAndRemoveWwwPrefix(parsedDomainName);
       return parsedDomainName;
     }
     else
@@ -130,13 +132,29 @@ void DNSServer::replyWithIP()
 
   if(_query_cb)
   {
-      _query_cb( _udp.remoteIP(), getDomainNameWithoutWwwPrefix().c_str(), _resolvedIP );
+      overrideIP = IPAddress(0, 0, 0, 0);
+      _query_cb( _udp.remoteIP(), getDomainName().c_str(), _resolvedIP );
+      _overrideIP[0] = overrideIP[0];
+      _overrideIP[1] = overrideIP[1];
+      _overrideIP[2] = overrideIP[2];
+      _overrideIP[3] = overrideIP[3];
   }
 
   // Length of RData is 4 bytes (because, in this case, RData is IPv4)
   _udp.write((uint8_t)0);
   _udp.write((uint8_t)4);
-  _udp.write(_resolvedIP, sizeof(_resolvedIP));
+  if ( _overrideIP[0] > 0 )
+  {
+      if(_override_cb)
+      {
+          _override_cb( _udp.remoteIP(), getDomainName().c_str(), _overrideIP );
+      }
+      _udp.write(_overrideIP, sizeof(_overrideIP));
+  }
+  else
+  {
+      _udp.write(_resolvedIP, sizeof(_resolvedIP));
+  }
   _udp.endPacket();
 
 }
@@ -156,4 +174,8 @@ void DNSServer::replyWithCustomCode()
 
 void DNSServer::onQuery(DNS_QUERY_HANDLER(fn)){
   _query_cb = fn;
+}
+
+void DNSServer::onOverride(DNS_OVERRIDE_HANDLER(fn)){
+  _override_cb = fn;
 }

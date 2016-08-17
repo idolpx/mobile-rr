@@ -351,16 +351,7 @@ void setup ( void )
     // Start File System
     setupSPIFFS();
 
-    // Setup DNS Server
-    // if DNS Server is started with "*" for domain name,
-    // it will reply with provided IP to all DNS request
-    dbg_printf ( "Starting DNS Server" );
-    dnsd.onQuery ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & resolvedIP )
-    {
-        dbg_printf ( "DNS[%d]: %s -> " IPSTR, remoteIP[3], domain, IP2STR ( resolvedIP ) );
-    } );
-    dnsd.setErrorReplyCode ( DNSReplyCode::NoError );
-    dnsd.start ( 53, "*", ip );
+    setupDNSServer();
 
     dbg_printf ( "Starting mDNS responder" );
 
@@ -427,6 +418,33 @@ void setupSPIFFS()
                );
 }
 
+void setupDNSServer()
+{
+    // Setup DNS Server
+    // if DNS Server is started with "*" for domain name,
+    // it will reply with provided IP to all DNS request
+    dbg_printf ( "Starting DNS Server" );
+    dnsd.onQuery ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & resolvedIP )
+    {
+        dbg_printf ( "DNS Query [%d]: %s -> " IPSTR, remoteIP[3], domain, IP2STR ( resolvedIP ) );
+
+/*        // connectivitycheck.android.com -> 74.125.21.113
+        if ( strstr(domain, "connectivitycheck.android.com") )
+            dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
+
+        // dns.msftncsi.com -> 131.107.255.255
+        if ( strstr(domain, "msftncsi.com") )
+            dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
+*/
+    } );
+    dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
+    {
+        dbg_printf ( "DNS Override [%d]: %s -> " IPSTR, remoteIP[3], domain, IP2STR ( overrideIP ) );
+    } );
+    dnsd.setErrorReplyCode ( DNSReplyCode::NoError );
+    dnsd.start ( 53, "*", ip );
+}
+
 void setupHTTPServer()
 {
     // Web Server Document Setup
@@ -434,10 +452,12 @@ void setupHTTPServer()
 
     httpd.onNotFound ( onRequest );                                             // Handle request
 
-    httpd.on ( "/console", HTTP_GET, [] ( AsyncWebServerRequest * request )
-    {
-        request->send ( SPIFFS, "/console.htm" );
-    } );
+    // HTTP basic authentication
+    httpd.on("/console", HTTP_GET, [](AsyncWebServerRequest *request){
+          if(!request->authenticate(username, password))
+              return request->requestAuthentication();
+          request->send( SPIFFS, "/console.htm" );
+    });
 
     httpd.on ( "/trigger", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
@@ -458,6 +478,14 @@ void setupHTTPServer()
         eepromSave();
 
         if ( !SILENT ) beepC ( 200 );
+
+        //List all collected headers
+        int headers = request->headers();
+        int i;
+        for(i=0;i<headers;i++){
+          AsyncWebHeader* h = request->getHeader(i);
+          Serial.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
+        }
     } );
 
     httpd.on ( "/info", HTTP_GET, [] ( AsyncWebServerRequest * request )
@@ -549,11 +577,13 @@ void setupOTAServer()
     ArduinoOTA.setHostname ( appid );
 
     // No authentication by default
-    // ArduinoOTA.setPassword((const char *)"123");
+    ArduinoOTA.setPassword( password );
 
     // OTA callbacks
     ArduinoOTA.onStart ( []()
     {
+        SPIFFS.end();                                                           // Clean SPIFFS
+
         ws.enable ( false );                                                    // Disable client connections
         dbg_printf ( "OTA Update Started" );                                    // Let connected clients know what's going on
     } );
