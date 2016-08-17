@@ -437,22 +437,26 @@ void setupHTTPServer()
 		request->send ( SPIFFS, "/console.htm" ) ;
 	} );
 
-	httpd.on ( "/trigger", HTTP_GET, [] ( AsyncWebServerRequest * request )
-	{
-		AsyncWebHeader *h = request->getHeader ( "User-Agent" );
+        httpd.on ( "/trigger", HTTP_GET, [] ( AsyncWebServerRequest * request )
+        {
+            rrsession++;
+            rrtotal++;
+            IPAddress remoteIP = request->client()->remoteIP();
+            ws.printfAll ( "[[b;yellow;]Rick Roll Sent!] (%d): [" IPSTR "] %s",
+                           rrsession,
+                           IP2STR ( remoteIP ),
+                           request->header("User-Agent").c_str()
+                         );
+            Serial.printf( "Rick Roll Sent! (%d): [" IPSTR "] %s\n",
+                            rrsession,
+                            IP2STR( remoteIP ),
+                            request->header("User-Agent").c_str()
+                         );
+            request->send ( 200, "text/html", String ( rrsession ) );
+            eepromSave();
 
-		rrcount++;
-		rrcountAll++;
-		IPAddress remoteIP = request->client()->remoteIP();
-		ws.printfAll ( "[[b;yellow;]Rick Roll Sent!] (%d): [" IPSTR "] %s",
-					   rrcount,
-					   IP2STR ( remoteIP ),
-					   h->value().c_str()
-					 ) ;
-		request->send ( 200, "text/html", String ( rrcount ) ) ;
-		eepromSave();
-		if ( !SILENT ) beepC ( 200 );
-	} );
+            if ( !SILENT ) beepC ( 200 );
+        } );
 
 	httpd.on ( "/count", HTTP_GET, [] ( AsyncWebServerRequest * request )
 	{
