@@ -441,15 +441,18 @@ void setupHTTPServer()
 
     httpd.on ( "/trigger", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
-        AsyncWebHeader *h = request->getHeader ( "User-Agent" );
-
         rrsession++;
         rrtotal++;
         IPAddress remoteIP = request->client()->remoteIP();
         ws.printfAll ( "[[b;yellow;]Rick Roll Sent!] (%d): [" IPSTR "] %s",
                        rrsession,
                        IP2STR ( remoteIP ),
-                       h->value().c_str()
+                       request->header("User-Agent").c_str()
+                     );
+        Serial.printf( "Rick Roll Sent! (%d): [" IPSTR "] %s\n",
+                        rrsession,
+                        IP2STR( remoteIP ),
+                        request->header("User-Agent").c_str()
                      );
         request->send ( 200, "text/html", String ( rrsession ) );
         eepromSave();
