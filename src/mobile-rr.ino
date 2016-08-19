@@ -66,6 +66,8 @@ char				user[]  = "admin";
 char				pass[]  = "password";
 bool		 		DEBUG   = 1;
 bool				SILENT  = 0;
+int				rrsession = 0;
+int				rrtotal = 0;
 
 #define PIEZO_PIN		4
 
