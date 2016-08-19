@@ -94,7 +94,17 @@
             <div id="console"></div>
         </div>
         <div data-role="footer" id="footer">
-            <input id="cmdline" type="text" data-mini="true" placeholder="Enter command here" />
+
+
+            <div class="ui-grid-a ui-responsive">
+                <div class="ui-block-a">
+                    <input id="cmdline" type="text" data-mini="true" placeholder="Enter command here" />
+                </div>
+                <div class="ui-block-b" style="float:right !important; padding: 10px;">
+                    <label for="rrcount">Session:</label><span id="rrcount"></span>
+                    <label for="rrtotal">Total:</label><span id="rrtotal"></span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -215,9 +225,10 @@
                     }
 
                     if (msg.indexOf("Rick Roll Sent") > -1)
+                    {
                         audio.play();
-
-
+                        getSettings();
+                    }
                 };
             }
             function progress(percent, width) {
@@ -321,21 +332,7 @@
                         });
                 }
                 if (page.indexOf("#settings") > 0) {
-                    $.ajax({
-                            url: "http://10.10.10.1/settings",
-                        })
-                        .done(function(data) {
-                            $("#settings textarea").val(data);
-                            settings = JSON.parse(data);
-                            $("#ssid").val(settings.ssid);
-                            $("#username").val(settings.username);
-                            $("#password").val(settings.password);
-
-                            v = ((settings.debug > 0) ? "on" : "off");
-                            $('#debug').val(v).slider("refresh");
-                            v = ((settings.silent > 0) ? "on" : "off");
-                            $('#silent').val(v).slider("refresh");
-                        });
+                    getSettings();
                 }
 
                 var page = data.prevPage.attr("id");
@@ -351,6 +348,26 @@
                 }
 
             });
+
+            function getSettings() {
+                $.ajax({
+                        url: "http://10.10.10.1/settings",
+                    })
+                    .done(function(data) {
+                        $("#settings textarea").val(data);
+                        settings = JSON.parse(data);
+                        $("#ssid").val(settings.ssid);
+                        $("#username").val(settings.username);
+                        $("#password").val(settings.password);
+                        $("#rrcount").val(settings.rrcount);
+                        $("#rrtotal").val(settings.rrtotal);
+
+                        v = ((settings.debug > 0) ? "on" : "off");
+                        $('#debug').val(v).slider("refresh");
+                        v = ((settings.silent > 0) ? "on" : "off");
+                        $('#silent').val(v).slider("refresh");
+                    });
+            }
 
             startWS("10.10.10.1");
             $(window).resize();

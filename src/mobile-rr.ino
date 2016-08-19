@@ -20,6 +20,7 @@
 // ArduinoJson - https://github.com/bblanchon/ArduinoJson
 // EEPROM - https://gist.github.com/dogrocker/f998dde4dbac923c47c1
 // Exception Causes - https://github.com/esp8266/Arduino/blob/master/doc/exception_causes.md
+// WiFi Scan- https://www.linuxpinguin.de/project/wifiscanner/
 // ESP-GDBStub - https://github.com/esp8266/Arduino/tree/master/libraries/GDBStub
 
 #include <stdio.h>
@@ -114,6 +115,18 @@ char            str_vcc[8];
 //***************************************************************************
 // End of global data section.                                              *
 //***************************************************************************
+
+// WiFi Encryption Types
+String encryptionTypes(int which) {
+    switch (which) {
+        case ENC_TYPE_WEP: return "WEP\t"; break;
+        case ENC_TYPE_TKIP: return "WPA/TKIP"; break;
+        case ENC_TYPE_CCMP: return "WPA2/CCMP"; break;
+        case ENC_TYPE_NONE: return "None\t"; break;
+        case ENC_TYPE_AUTO: return "Auto\t"; break;
+        default: return "Unknown"; break;
+    }
+}
 
 //***************************************************************************
 //                            D B G P R I N T                               *
@@ -315,7 +328,6 @@ void setup ( void )
     setupEEPROM();
 
     pinMode ( PIEZO_PIN, OUTPUT );                                              // initialize PIEZO PIN as output
-
     if ( !SILENT ) beep_rr();
 
     // Setup Access Point
@@ -368,9 +380,53 @@ void setup ( void )
 
 void setupAP()
 {
+    char no_pass[] = "\0";
+
+    int chan_selected;
+    int channels[14];
+    std::fill_n(channels, 14, 0);
+
+    WiFi.mode( WIFI_STA );
+    Serial.println( "Scanning WiFi Networks" );
+    int networks = WiFi.scanNetworks();
+    Serial.printf( "%d Networks Found\n", networks );
+    Serial.printf( "RSSI\tCHANNEL\tENCRYPTION\tBSSID\t\t\tNAME\n" );
+
+    for (int network = 0; network < networks; network++) {
+        String ssid_scan;
+        int32_t rssi_scan;
+        uint8_t sec_scan;
+        uint8_t* BSSID_scan;
+        int32_t chan_scan;
+        bool hidden_scan;
+        WiFi.getNetworkInfo(network, ssid_scan, sec_scan, rssi_scan, BSSID_scan, chan_scan, hidden_scan);
+
+        Serial.printf( "%d\t%d\t%s\t%02X:%02X:%02X:%02X:%02X:%02X\t%s\n",
+                        rssi_scan,
+                        chan_scan,
+                        encryptionTypes( sec_scan ).c_str(),
+                        MAC2STR( BSSID_scan ),
+                        ssid_scan.c_str()
+                    );
+
+        channels[ chan_scan ]++;
+    }
+
+    // Find least used channel
+    int lowest_count = 10000;
+    for (int channel = 1; channel<= 14; channel++){
+        if ( channels[channel] < lowest_count )
+        {
+            lowest_count = channels[channel];
+            chan_selected = channel;
+        }
+        //Serial.printf( "Channel %d = %d\n", channel, channels[channel]);
+    }
+    Serial.printf ( "Channel %d Selected!\n", chan_selected );
+
     WiFi.mode ( WIFI_AP );
     WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
-    WiFi.softAP ( ssid );
+    WiFi.softAP ( ssid, no_pass, chan_selected );
 }
 
 
@@ -659,6 +715,7 @@ void eepromLoad()
 
         dbg_printf ( "EEPROM - Loaded" );
         root.prettyPrintTo ( Serial );
+        Serial.println();
     }
 }
 
@@ -692,6 +749,7 @@ void eepromSave()
 
     dbg_printf ( "EEPROM - Saved" );
     root.prettyPrintTo ( Serial );
+    Serial.println();
 }
 
 void eepromInitialize()
