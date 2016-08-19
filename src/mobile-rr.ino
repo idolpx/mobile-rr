@@ -439,20 +439,20 @@ void setupHTTPServer()
 
         httpd.on ( "/trigger", HTTP_GET, [] ( AsyncWebServerRequest * request )
         {
-            rrsession++;
-            rrtotal++;
+            rrcount++;
+            rrcountAll++;
             IPAddress remoteIP = request->client()->remoteIP();
             ws.printfAll ( "[[b;yellow;]Rick Roll Sent!] (%d): [" IPSTR "] %s",
-                           rrsession,
+                           rrcount,
                            IP2STR ( remoteIP ),
                            request->header("User-Agent").c_str()
                          );
             Serial.printf( "Rick Roll Sent! (%d): [" IPSTR "] %s\n",
-                            rrsession,
+                            rrcount,
                             IP2STR( remoteIP ),
                             request->header("User-Agent").c_str()
                          );
-            request->send ( 200, "text/html", String ( rrsession ) );
+            request->send ( 200, "text/html", String ( rrcount ) );
             eepromSave();
 
             if ( !SILENT ) beepC ( 200 );
