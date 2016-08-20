@@ -642,13 +642,13 @@ void onRequest ( AsyncWebServerRequest *request )
 	if ( path.endsWith ( "/" ) )
 		path += "index.htm";
 
-	if ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) )
+	if ( ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" )) ||  (request->host() != "10.10.10.1") )
 	{
 		//AsyncWebHeader *h = request->getHeader ( "User-Agent" );
 
 		// Redirect to captive portal
 		//dbg_printf ( "HTTP[%d]: Redirected to captive portal\n%s", remoteIP[3], h->value().c_str() ) ;
-		request->redirect ( "http://freewifi.com/index.htm" );
+		request->redirect ( "http://10.10.10.1/index.htm" );
 	}
 	else
 	{
