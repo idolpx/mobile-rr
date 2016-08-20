@@ -21,6 +21,8 @@
 // EEPROM - https://gist.github.com/dogrocker/f998dde4dbac923c47c1
 // Exception Causes - https://github.com/esp8266/Arduino/blob/master/doc/exception_causes.md
 // WiFi Scan- https://www.linuxpinguin.de/project/wifiscanner/
+// SPIFFS - https://github.com/esp8266/Arduino/blob/master/doc/filesystem.md
+//          http://blog.squix.org/2015/08/esp8266arduino-playing-around-with.html
 // ESP-GDBStub - https://github.com/esp8266/Arduino/tree/master/libraries/GDBStub
 
 #include <stdio.h>
@@ -83,14 +85,15 @@ bool            SILENT      = 0;
                   "[[b;cyan;]?] or [[b;cyan;]help]    show this help\n" \
                   "[[b;cyan;]beep {n/rr}]  sound piezo for 'n' ms\n" \
                   "[[b;cyan;]count]        show Rick Roll count\n" \
-                  "[[b;cyan;]debug {1/0}]  toggle/set debug output\n" \
+                  "[[b;cyan;]debug {1/0}]  show/set debug output\n" \
                   "[[b;cyan;]eeprom]       show eeprom contents\n" \
                   "[[b;cyan;]info]         show system information\n" \
                   "[[b;cyan;]ls]           list SPIFFS files\n" \
+                  "[[b;cyan;]msg 's']      show/set message to 's'\n" \
                   "[[b;cyan;]reboot]       reboot system\n" \
                   "[[b;cyan;]reset]        reset default settings\n" \
-                  "[[b;cyan;]silent {0/1}] toggle/set silent mode\n" \
-                  "[[b;cyan;]ssid 's']     change ssid to 's'"
+                  "[[b;cyan;]silent {0/1}] show/set silent mode\n" \
+                  "[[b;cyan;]ssid 's']     show/set ssid to 's'"
 
 
 // Web Socket client state
@@ -959,13 +962,9 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
     }
 
     // Custom command to talk to device
-    if ( ( l >= 5 && !strncasecmp_P ( msg, PSTR ( "debug " ), 6 ) ) || !strcasecmp_P ( msg, PSTR ( "debug" ) ) )
+    if ( !strncasecmp_P ( msg, PSTR ( "debug" ), 5 ) )
     {
-        if ( l == 5 )
-        {
-            DEBUG = !DEBUG;
-        }
-        else
+        if ( l > 5 )
         {
             int v = atoi ( &msg[6] );
 
@@ -989,13 +988,9 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         }
 
     }
-    else if ( ( l >= 6 && !strncasecmp_P ( msg, PSTR ( "silent " ), 7 ) ) || !strcasecmp_P ( msg, PSTR ( "silent" ) ) )
+    else if ( !strncasecmp_P ( msg, PSTR ( "silent" ), 6 ) )
     {
-        if ( l == 6 )
-        {
-            SILENT = !SILENT;
-        }
-        else
+        if ( l > 6 )
         {
             int v = atoi ( &msg[7] );
 
@@ -1086,7 +1081,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
 
         client_status ( client );
     }
-    else if ( ( l >= 4 && !strncasecmp_P ( msg, PSTR ( "beep " ), 5 ) ) || !strcasecmp_P ( msg, PSTR ( "beep" ) ) )
+    else if ( !strncasecmp_P ( msg, PSTR ( "beep" ), 4 ) )
     {
         if ( strstr ( msg, "rr" ) )
         {
@@ -1104,17 +1099,70 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         }
 
     }
-    else if ( ( l > 5 && !strncasecmp_P ( msg, PSTR ( "ssid " ), 5 ) ) )
+    else if ( !strncasecmp_P ( msg, PSTR ( "ssid" ), 4 ) )
     {
-        sprintf ( ssid, "%s", &msg[5] );
-        client->printf_P ( PSTR ( "[[b;yellow;]Changing SSID:] %s" ) , ssid );
+        if ( l == 4 )
+        {
+            client->printf_P ( PSTR ( "[[b;yellow;]SSID:] %s" ) , ssid );
+        }
+        else
+        {
+            sprintf ( ssid, "%s", &msg[5] );
+            client->printf_P ( PSTR ( "[[b;yellow;]Changing SSID:] %s" ) , ssid );
 
-        if ( !SILENT ) beep ( 500 );
+            if ( !SILENT ) beep ( 500 );
 
-        eepromSave();
-        setupAP();
+            eepromSave();
+            setupAP();
+        }
     }
-    else if ( ( l >= 5 && !strncasecmp_P ( msg, PSTR ( "count " ), 6 ) ) || !strcasecmp_P ( msg, PSTR ( "count" ) ) )
+    else if ( !strncasecmp_P ( msg, PSTR ( "msg" ), 3 ) )
+    {
+        File f;
+
+        // Open "message.htm" file stream from SPIFFS
+        if ( SPIFFS.exists("/message.htm") )
+        {
+            Serial.println("File opened r+");
+            f = SPIFFS.open("/message.htm", "r+");
+        }
+        else
+        {
+            Serial.println("File opened w+");
+            f = SPIFFS.open("/message.htm", "w+");
+        }
+
+        if (!f) {
+            Serial.println("file open failed [/message.htm]");
+        }
+        else
+        {
+            if ( l == 3 )
+            {
+                Serial.println("Reading File");
+                // Read Message from "message.htm" in SPIFFS
+                if ( f.size() > 0 )
+                {
+                    String s = f.readString();
+                    client->printf_P ( PSTR ( "[[b;yellow;]Message:] %s" ) , s.c_str() );
+                }
+            }
+            else
+            {
+                Serial.printf("Writing File: [%s]", &msg[4]);
+                client->printf_P ( PSTR ( "[[b;yellow;]Changing Message:] %s" ) , &msg[4] );
+
+                if ( !SILENT ) beep ( 500 );
+
+                // Write Message to "message.htm" in SPIFFS
+                f.print( &msg[4] );
+            }
+            f.close();
+        }
+
+
+    }
+    else if ( !strncasecmp_P ( msg, PSTR ( "count" ), 5 ) )
     {
         if ( l > 5 )
         {

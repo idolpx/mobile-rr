@@ -103,8 +103,10 @@ The service and any products or services provided on or in connection with the s
             <button id='d' class='ui-btn ui-corner-all'>Loading <img src='media/d.gif' /></button>
         </div>
         <div id='m'>
-            <div id='bg'><img src='media/a.gif'>
-            </div><span>You just got Rick-Roll'd! ;)</span>
+            <div id='bg'>
+                <img src='media/a.gif'>
+            </div>
+            <span id='msg'>You just got Rick-Roll'd! ;)</span>
             <audio id='a' loop='loop' preload='preload' src='media/m.mp3' />
         </div>
     </div>
@@ -125,6 +127,22 @@ The service and any products or services provided on or in connection with the s
         function show() {
             b.style.display = "block";
             d.style.display = "none";
+            message();
+        }
+
+        function message()
+        {
+            var xmlHttp = new XMLHttpRequest();
+
+            xmlHttp.onreadystatechange = function() {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                {
+                    console.log('Message: ' + xmlHttp.responseText);
+                    document.getElementById("msg").innerHTML = xmlHttp.responseText;
+                }
+            };
+            xmlHttp.open("GET", "/message.htm", true); // true for asynchronous
+            xmlHttp.send(null);
         }
 
         function trigger()
