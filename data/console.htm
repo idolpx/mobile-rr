@@ -96,13 +96,15 @@
         <div data-role="footer" id="footer">
 
 
-            <div class="ui-grid-a ui-responsive">
-                <div class="ui-block-a">
+            <div class="ui-grid-b ui-responsive">
+                <div class="ui-block-a" style="width:78%">
                     <input id="cmdline" type="text" data-mini="true" placeholder="Enter command here" />
                 </div>
-                <div class="ui-block-b" style="float:right !important; padding: 10px;">
-                    <label for="rrcount">Session:</label><span id="rrcount"></span>
-                    <label for="rrtotal">Total:</label><span id="rrtotal"></span>
+                <div class="ui-block-b" style="width:12%; font-color: ">
+                    <input id="rrcount" type="text" data-mini="true" placeholder="Session: 999" />
+                </div>
+                <div class="ui-block-c" style="width:10%">
+                    <input id="rrtotal" type="text" data-mini="true" placeholder="Total: 999" />
                 </div>
             </div>
         </div>
@@ -359,8 +361,8 @@
                         $("#ssid").val(settings.ssid);
                         $("#username").val(settings.username);
                         $("#password").val(settings.password);
-                        $("#rrcount").val(settings.rrcount);
-                        $("#rrtotal").val(settings.rrtotal);
+                        $("#rrcount").val("Session: " + (settings.rrcount > 0 ? settings.rrcount:0) );
+                        $("#rrtotal").val("Total: " + (settings.rrtotal > 0 ? settings.rrtotal:0) );
 
                         v = ((settings.debug > 0) ? "on" : "off");
                         $('#debug').val(v).slider("refresh");
@@ -371,6 +373,7 @@
 
             startWS("10.10.10.1");
             $(window).resize();
+            getSettings();
 
         });
     </script>
