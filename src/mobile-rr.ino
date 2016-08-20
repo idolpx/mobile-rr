@@ -82,19 +82,21 @@ bool            SILENT      = 0;
 
 #define HELP_TEXT "[[b;green;]ESP8266 Mobile Rick Roll]\n" \
                   "------------------------\n" \
-                  "[[b;cyan;]?] or [[b;cyan;]help]    show this help\n" \
+                  "[[b;cyan;]?] or [[b;cyan;]help]    show this help\n\n" \
+                  "[[b;cyan;]debug {1/0}]  show/set debug output\n" \
+                  "[[b;cyan;]silent {0/1}] show/set silent mode\n" \
+                  "[[b;cyan;]ssid 's']     show/set SSID to 's'\n" \
+                  "[[b;cyan;]msg 's']      show/set message to 's'\n" \
+                  "[[b;cyan;]user 's']     show/set username to 's'\n" \
+                  "[[b;cyan;]pass 's']     show/set password to 's'\n\n" \
                   "[[b;cyan;]beep {n/rr}]  sound piezo for 'n' ms\n" \
                   "[[b;cyan;]count]        show Rick Roll count\n" \
-                  "[[b;cyan;]debug {1/0}]  show/set debug output\n" \
-                  "[[b;cyan;]eeprom]       show eeprom contents\n" \
+                  "[[b;cyan;]eeprom]       show EEPROM contents\n" \
                   "[[b;cyan;]info]         show system information\n" \
-                  "[[b;cyan;]ls]           list SPIFFS files\n" \
-                  "[[b;cyan;]msg 's']      show/set message to 's'\n" \
+                  "[[b;cyan;]ls]           list SPIFFS files\n\n" \
                   "[[b;cyan;]reboot]       reboot system\n" \
                   "[[b;cyan;]reset]        reset default settings\n" \
-                  "[[b;cyan;]silent {0/1}] show/set silent mode\n" \
-                  "[[b;cyan;]ssid 's']     show/set ssid to 's'"
-
+                  "[[b;cyan;]save]         save settings to EEPROM"
 
 // Web Socket client state
 typedef struct
@@ -943,6 +945,7 @@ void onEvent ( AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
 //***************************************************************************
 void execCommand ( AsyncWebSocketClient *client, char *msg )
 {
+    bool CHANGED = false;
     uint16_t l = strlen ( msg );
     uint8_t index = MAX_WS_CLIENT;
 
@@ -976,6 +979,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             {
                 DEBUG = false;
             }
+            CHANGED = true;
         }
 
         if ( DEBUG )
@@ -1002,6 +1006,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             {
                 SILENT = false;
             }
+            CHANGED = true;
         }
 
         if ( SILENT )
@@ -1099,6 +1104,32 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         }
 
     }
+    else if ( !strncasecmp_P ( msg, PSTR ( "user" ), 4 ) )
+    {
+        if ( !strncasecmp_P ( msg, PSTR ( "user " ), 5 ) )
+        {
+            sprintf ( username, "%s", &msg[5] );
+            client->printf_P ( PSTR ( "[[b;yellow;]Changing Username:] %s" ) , username );
+            CHANGED = true;
+        }
+        else
+        {
+            client->printf_P ( PSTR ( "[[b;yellow;]Username:] %s" ) , username );
+        }
+    }
+    else if ( !strncasecmp_P ( msg, PSTR ( "pass" ), 4 ) )
+    {
+        if ( !strncasecmp_P ( msg, PSTR ( "pass " ), 5 ) )
+        {
+            sprintf ( password, "%s", &msg[5] );
+            client->printf_P ( PSTR ( "[[b;yellow;]Changing Password:] %s" ) , password );
+            CHANGED = true;
+        }
+        else
+        {
+            client->printf_P ( PSTR ( "[[b;yellow;]Password:] %s" ) , password );
+        }
+    }
     else if ( !strncasecmp_P ( msg, PSTR ( "ssid" ), 4 ) )
     {
         if ( l == 4 )
@@ -1115,6 +1146,14 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             eepromSave();
             setupAP();
         }
+    }
+    else if ( !strncasecmp_P ( msg, PSTR ( "save" ), 4 ) )
+    {
+        client->printf_P ( PSTR ( "[[b;green;]Saving Settings to EEPROM]" ) );
+
+        if ( !SILENT ) beep ( 500 );
+
+        eepromSave();
     }
     else if ( !strncasecmp_P ( msg, PSTR ( "msg" ), 3 ) )
     {
@@ -1210,6 +1249,11 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         ws.closeAll();
         delay ( 1000 );
         ESP.restart();
+    }
+
+    if ( CHANGED )
+    {
+        client->printf_P ( PSTR ( "[[b;yellow;]*** NOTE: Changes are not written to EEPROM until you enter 'save']" ) );
     }
 
     dbg_printf ( "WS[%d]: %s", client->id(), msg );
