@@ -798,13 +798,9 @@ void onRequest ( AsyncWebServerRequest *request )
 
     String path = request->url();
 
-    if ( path.endsWith ( "/" ) || ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) ) )
+    if ( ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" )) ||  (request->host() != "10.10.10.1") )
     {
         request->redirect ( "http://10.10.10.1/index.htm" );
-        request->send ( SPIFFS, "/redirect.htm" );
-        //AsyncWebServerResponse *response = request->beginResponse ( SPIFFS, "/redirect.htm" );
-        //response->addHeader ( "Location", "http://10.10.10.1/index.htm" );
-        //request->send ( response );
     }
     else
     {

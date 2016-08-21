@@ -9,7 +9,7 @@
 #define DNS_QUERY_HANDLER(callback)  void (*callback)(const IPAddress&, const char*, const IPAddress&)
 #define DNS_OVERRIDE_HANDLER(callback)  void (*callback)(const IPAddress&, const char*, const IPAddress&)
 
-enum class DNSReplyCode
+enum DNSReplyCode
 {
   NoError = 0,
   FormError = 1,
