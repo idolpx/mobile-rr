@@ -105,6 +105,15 @@ typedef struct
     uint8_t   state;
 } _ws_client;
 
+enum class statemachine
+{
+    none,
+    beep,
+    rr
+};
+statemachine state = statemachine::none;
+int beepv;
+
 IPAddress       ip ( 10, 10, 10, 1 );                                           // Private network for httpd
 DNSServer       dnsd;                                                           // Create the DNS object
 MDNSResponder   mdns;
@@ -779,6 +788,17 @@ void loop ( void )
 {
     dnsd.processNextRequest();
     ArduinoOTA.handle();  // Handle remote Wifi Updates
+
+    switch (state){
+        case statemachine::rr:
+            beep_rr();
+            state = statemachine::none;
+            break;
+        case statemachine::beep:
+            beepC(beepv);
+            state = statemachine::none;
+            break;
+    }
 }
 
 //***************************************************************************
@@ -1087,7 +1107,17 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         if ( strstr ( msg, "rr" ) )
         {
             client->printf_P ( PSTR ( "[[b;green;]NEVER GONNA GIVE YOU UP!]" ) );
-            beep_rr ( true );
+            state = statemachine::rr;
+        }
+        if ( strstr (msg, "c") )
+        {
+            int v = atoi ( &msg[6] );
+
+            if ( v == 0 ) v = 50;
+
+            client->printf_P ( PSTR ( "[[b;yellow;]CHIRP!] %dms" ) , v );
+            beepv = v;
+            state = statemachine::beep;
         }
         else
         {
@@ -1096,7 +1126,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             if ( v == 0 ) v = 50;
 
             client->printf_P ( PSTR ( "[[b;yellow;]BEEP!] %dms" ) , v );
-            beep ( v );
+            beep( v );
         }
 
     }
