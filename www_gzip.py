@@ -33,3 +33,7 @@ if 'SPIFFS_START' in env:
         if re.search(pattern, file):
             print file
             gzFile( file )
+
+    with open(data + "do-not-modify-files-in-here.txt", "w") as file:
+        file.write("These files will be overwritten when building the SPIFFS image!\n")
+        file.write("Modify the files in the 'www' folder instead.")
