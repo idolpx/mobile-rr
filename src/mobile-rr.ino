@@ -71,7 +71,7 @@ int setupAP ( int chan_selected ) ;
 //***************************************************************************
 // Global data section.                                                     *
 //***************************************************************************
-float           version     = 1.31;
+float           version     = 1.40;
 const char      *appid      = "mobile-rr";
 char            ssid[]      = "FREE Highspeed WiFi";
 int             channel     = 0;
