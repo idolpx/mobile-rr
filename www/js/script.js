@@ -193,9 +193,13 @@ jQuery(document).ready(function($) {
         defaults: true
     });
 
-    $("#info").on('touchstart', '[data-rel=back]', function (e) {
+    $("#info [data-rel='back']").click(function(e) {
         e.preventDefault();
-        $.mobile.changePage("#gui", { transition: "slide", reverse: false, changeHash: false });
+        $.mobile.changePage("#gui", {
+            reloadPage: false,
+            transition: "slide",
+            reverse: false
+        });
     });
 
     $(window).resize(function() {
@@ -227,12 +231,6 @@ jQuery(document).ready(function($) {
                 $("#settings_json").val(data);
                 settings = JSON.parse(data);
                 setFields( settings );
-
-            //    v = ((settings.debug > 0) ? "on" : "off");
-            //    $('#debug').val(v).slider("refresh");
-            //    v = ((settings.silent > 0) ? "on" : "off");
-            //    $('#silent').val(v).slider("refresh");
-
                 $("#loader").loader("hide");
             });
     }
@@ -249,11 +247,13 @@ jQuery(document).ready(function($) {
     function setFields( json ) {
         $.each(json, function(k, v) {
             //check for format
+            //console.log("setFields: '" + k + "'=[" + v +"]");
             f = $("#"+k).attr("format");
             if (f) {
                 f = f.replace('{key}', k);
                 f = f.replace('{value}', v);
-                v = $.globalEval(f);
+                //console.log("Format: " + v);
+                v = eval(f);
             }
             $("#"+k).val(v).attr("tag", v);
         });

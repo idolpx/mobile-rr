@@ -602,7 +602,7 @@ void setupHTTPServer()
         root["sketch_free"] = ESP.getFreeSketchSpace();
 
         root["flash_size"] = ESP.getFlashChipRealSize();
-        root["flash_speed"] = ESP.getFlashChipSpeed();
+        root["flash_speed"] = ( ESP.getFlashChipSpeed() / 1000000 );
 
         FSInfo fs_info;
         SPIFFS.info ( fs_info );

@@ -67,10 +67,10 @@
                     <input id="cmdline" type="text" data-mini="true" placeholder="Enter command here" />
                 </div>
                 <div class="ui-block-b" style="width:12%; font-color: ">
-                    <input id="rrsession" type="text" data-mini="true" placeholder="Session: 999" />
+                    <input id="rrsession" type="text" data-mini="true" placeholder="Session: 999"  format="formatString('Session: {value}')" />
                 </div>
                 <div class="ui-block-c" style="width:10%">
-                    <input id="rrtotal" type="text" data-mini="true" placeholder="Total: 999" />
+                    <input id="rrtotal" type="text" data-mini="true" placeholder="Total: 999"  format="formatString('Total: {value}')" />
                 </div>
             </div>
         </div>
@@ -144,12 +144,12 @@
                 <label for="password">Password:</label>
                 <input type="password" name="password" id="password" data-mini="true">
                 <label for="debug">Debug Mode:</label>
-                <select name="debug" id="debug" data-role="slider" data-mini="true" format="boolToOnOff({settings.debug})">
+                <select name="debug" id="debug" data-role="slider" data-mini="true" format="boolToOnOff({value})">
                     <option value="off">Off</option>
                     <option value="on">On</option>
                 </select>
                 <label for="silent">Silent Mode:</label>
-                <select name="silent" id="silent" data-role="slider" data-mini="true" format="boolToOnOff({settings.silent})">
+                <select name="silent" id="silent" data-role="slider" data-mini="true" format="boolToOnOff({value})">
                     <option value="off">Off</option>
                     <option value="on">On</option>
                 </select>
