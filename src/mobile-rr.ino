@@ -23,6 +23,7 @@
 // WiFi Scan- https://www.linuxpinguin.de/project/wifiscanner/
 // SPIFFS - https://github.com/esp8266/Arduino/blob/master/doc/filesystem.md
 //          http://blog.squix.org/2015/08/esp8266arduino-playing-around-with.html
+// WiFiManager - https://github.com/tzapu/WiFiManager
 // ESP-GDBStub - https://github.com/esp8266/Arduino/tree/master/libraries/GDBStub
 
 #include <stdio.h>
@@ -39,6 +40,7 @@
 #include <EEPROM.h>
 #include <FS.h>
 #include <Hash.h>
+#include <Ticker.h>
 
 #include "DNSServer.h"
 
@@ -60,16 +62,24 @@ static void _u0_putc ( char c )
     U0F = c;
 }
 
+//
+//******************************************************************************************
+// Forward declaration of methods                                                          *
+//******************************************************************************************
+int setupAP ( int chan_selected ) ;
+
 //***************************************************************************
 // Global data section.                                                     *
 //***************************************************************************
 float           version     = 1.31;
 const char      *appid      = "mobile-rr";
 char            ssid[]      = "FREE Highspeed WiFi";
+int             channel     = 0;
 char            username[]  = "admin";
 char            password[]  = "password";
 bool            DEBUG       = 1;
 bool            SILENT      = 0;
+int             interval    = 1000 * 60 * 30;                                   // 30 Minutes in Milliseconds
 
 #define PIEZO_PIN   4
 
@@ -86,6 +96,9 @@ bool            SILENT      = 0;
                   "[[b;cyan;]debug {1/0}]  show/set debug output\n" \
                   "[[b;cyan;]silent {0/1}] show/set silent mode\n" \
                   "[[b;cyan;]ssid 's']     show/set SSID to 's'\n" \
+                  "[[b;cyan;]chan {0-11}]  show/set channel (0=auto)\n" \
+                  "[[b;cyan;]int {n}]      show/set auto scan interval\n" \
+                  "                where 'n' is mins (0=off)\n" \
                   "[[b;cyan;]msg 's']      show/set message to 's'\n" \
                   "[[b;cyan;]user 's']     show/set username to 's'\n" \
                   "[[b;cyan;]pass 's']     show/set password to 's'\n\n" \
@@ -93,7 +106,8 @@ bool            SILENT      = 0;
                   "[[b;cyan;]count]        show Rick Roll count\n" \
                   "[[b;cyan;]eeprom]       show EEPROM contents\n" \
                   "[[b;cyan;]info]         show system information\n" \
-                  "[[b;cyan;]ls]           list SPIFFS files\n\n" \
+                  "[[b;cyan;]ls]           list SPIFFS files\n" \
+                  "[[b;cyan;]scan]         scan WiFi networks in area\n\n" \
                   "[[b;cyan;]reboot]       reboot system\n" \
                   "[[b;cyan;]reset]        reset default settings\n" \
                   "[[b;cyan;]save]         save settings to EEPROM"
@@ -108,8 +122,10 @@ typedef struct
 enum class statemachine
 {
     none,
-    beep,
-    rr
+    beep_c,
+    beep_rr,
+    scan_wifi,
+    ap_change
 };
 statemachine state = statemachine::none;
 int beepv;
@@ -122,23 +138,45 @@ AsyncWebServer  httpd ( 80 );                                                   
 AsyncWebSocket  ws ( "/ws" );                                                   // access at ws://[esp ip]/ws
 _ws_client      ws_client[MAX_WS_CLIENT];                                       // State Machine for WebSocket Client;
 
-int             rrsession;                                                        // Rick Roll Count Session
-int             rrtotal;                                                     // Rick Roll Count Total
+Ticker          timer;                                                          // Setup Auto Scan Timer
+
+int             rrsession;                                                      // Rick Roll Count Session
+int             rrtotal;                                                        // Rick Roll Count Total
 char            str_vcc[8];
+int             chan_selected;
 
 //***************************************************************************
 // End of global data section.                                              *
 //***************************************************************************
 
 // WiFi Encryption Types
-String encryptionTypes(int which) {
-    switch (which) {
-        case ENC_TYPE_WEP: return "WEP\t"; break;
-        case ENC_TYPE_TKIP: return "WPA/TKIP"; break;
-        case ENC_TYPE_CCMP: return "WPA2/CCMP"; break;
-        case ENC_TYPE_NONE: return "None\t"; break;
-        case ENC_TYPE_AUTO: return "Auto\t"; break;
-        default: return "Unknown"; break;
+String encryptionTypes ( int which )
+{
+    switch ( which )
+    {
+        case ENC_TYPE_WEP:
+            return "WEP";
+            break;
+
+        case ENC_TYPE_TKIP:
+            return "WPA/TKIP";
+            break;
+
+        case ENC_TYPE_CCMP:
+            return "WPA2/CCMP";
+            break;
+
+        case ENC_TYPE_NONE:
+            return "None";
+            break;
+
+        case ENC_TYPE_AUTO:
+            return "Auto";
+            break;
+
+        default:
+            return "Unknown";
+            break;
     }
 }
 
@@ -225,7 +263,7 @@ void beepC ( int delayms )
     }
 }
 
-void beep_rr ( bool multiplier = false )
+void beep_rr ()
 {
     // We'll set up an array with the notes we want to play
     // change these values to make different songs!
@@ -249,9 +287,6 @@ void beep_rr ( bool multiplier = false )
     // To make the song play faster, decrease this value.
 
     int tempo = 125;
-
-    if ( multiplier )
-        tempo = tempo * 100000;
 
     //dbg_printf("Tempo %d\n", tempo);
 
@@ -342,10 +377,12 @@ void setup ( void )
     setupEEPROM();
 
     pinMode ( PIEZO_PIN, OUTPUT );                                              // initialize PIEZO PIN as output
+
     if ( !SILENT ) beep_rr();
 
     // Setup Access Point
-    setupAP();
+    WiFi.mode ( WIFI_AP_STA );
+    chan_selected = setupAP ( channel );
     WiFi.softAPmacAddress ( mac );
 
     // Show Soft AP Info
@@ -389,58 +426,35 @@ void setup ( void )
     setupHTTPServer();
     setupOTAServer();
 
+    // Setup Timer
+    if ( interval )
+    {
+        dbg_printf ( "Starting Auto WiFi Scan Timer" );
+        timer.attach_ms ( interval, onTimer );
+    }
+
+
     dbg_printf ( "\nReady!\n--------------------" );
 }
 
-void setupAP()
+int setupAP ( int chan_selected )
 {
     char no_pass[] = "\0";
 
-    int chan_selected;
-    int channels[14];
-    std::fill_n(channels, 14, 0);
-
-    WiFi.mode( WIFI_STA );
-    Serial.println( "Scanning WiFi Networks" );
-    int networks = WiFi.scanNetworks();
-    Serial.printf( "%d Networks Found\n", networks );
-    Serial.printf( "RSSI\tCHANNEL\tENCRYPTION\tBSSID\t\t\tNAME\n" );
-
-    for (int network = 0; network < networks; network++) {
-        String ssid_scan;
-        int32_t rssi_scan;
-        uint8_t sec_scan;
-        uint8_t* BSSID_scan;
-        int32_t chan_scan;
-        bool hidden_scan;
-        WiFi.getNetworkInfo(network, ssid_scan, sec_scan, rssi_scan, BSSID_scan, chan_scan, hidden_scan);
-
-        Serial.printf( "%d\t%d\t%s\t%02X:%02X:%02X:%02X:%02X:%02X\t%s\n",
-                        rssi_scan,
-                        chan_scan,
-                        encryptionTypes( sec_scan ).c_str(),
-                        MAC2STR( BSSID_scan ),
-                        ssid_scan.c_str()
-                    );
-
-        channels[ chan_scan ]++;
+    if ( chan_selected == 0 )
+    {
+        chan_selected = scanWiFi();
     }
 
-    // Find least used channel
-    int lowest_count = 10000;
-    for (int channel = 1; channel<= 14; channel++){
-        if ( channels[channel] < lowest_count )
-        {
-            lowest_count = channels[channel];
-            chan_selected = channel;
-        }
-        //Serial.printf( "Channel %d = %d\n", channel, channels[channel]);
-    }
-    Serial.printf ( "Channel %d Selected!\n", chan_selected );
+    dbg_printf ( "Channel %d Selected!", chan_selected );
 
-    WiFi.mode ( WIFI_AP );
-    WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
-    WiFi.softAP ( ssid, no_pass, chan_selected );
+    if ( chan_selected != WiFi.channel() || !WiFi.SSID().equals ( ssid ) )
+    {
+        WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
+        WiFi.softAP ( ssid, no_pass, chan_selected );
+    }
+
+    return chan_selected;
 }
 
 
@@ -498,14 +512,14 @@ void setupDNSServer()
     {
         dbg_printf ( "DNS Query [%d]: %s -> " IPSTR, remoteIP[3], domain, IP2STR ( resolvedIP ) );
 
-/*        // connectivitycheck.android.com -> 74.125.21.113
-        if ( strstr(domain, "connectivitycheck.android.com") )
-            dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
+        /*        // connectivitycheck.android.com -> 74.125.21.113
+                if ( strstr(domain, "connectivitycheck.android.com") )
+                    dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
 
-        // dns.msftncsi.com -> 131.107.255.255
-        if ( strstr(domain, "msftncsi.com") )
-            dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
-*/
+                // dns.msftncsi.com -> 131.107.255.255
+                if ( strstr(domain, "msftncsi.com") )
+                    dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
+        */
     } );
     dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
     {
@@ -523,11 +537,20 @@ void setupHTTPServer()
     httpd.onNotFound ( onRequest );                                             // Handle request
 
     // HTTP basic authentication
-    httpd.on("/console", HTTP_GET, [](AsyncWebServerRequest *request){
-          if(!request->authenticate(username, password))
-              return request->requestAuthentication();
-          request->send( SPIFFS, "/console.htm" );
-    });
+    httpd.on ( "/console", HTTP_GET, [] ( AsyncWebServerRequest * request )
+    {
+        if ( !request->authenticate ( username, password ) )
+            return request->requestAuthentication();
+
+        request->send ( SPIFFS, "/console.htm" );
+    } );
+    httpd.on ( "/console.htm", HTTP_GET, [] ( AsyncWebServerRequest * request )
+    {
+        if ( !request->authenticate ( username, password ) )
+            return request->requestAuthentication();
+
+        request->send ( SPIFFS, "/console.htm" );
+    } );
 
     httpd.on ( "/trigger", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
@@ -537,13 +560,13 @@ void setupHTTPServer()
         ws.printfAll ( "[[b;yellow;]Rick Roll Sent!] (%d): [" IPSTR "] %s",
                        rrsession,
                        IP2STR ( remoteIP ),
-                       request->header("User-Agent").c_str()
+                       request->header ( "User-Agent" ).c_str()
                      );
-        Serial.printf( "Rick Roll Sent! (%d): [" IPSTR "] %s\n",
+        Serial.printf ( "Rick Roll Sent! (%d): [" IPSTR "] %s\n",
                         rrsession,
-                        IP2STR( remoteIP ),
-                        request->header("User-Agent").c_str()
-                     );
+                        IP2STR ( remoteIP ),
+                        request->header ( "User-Agent" ).c_str()
+                      );
         request->send ( 200, "text/html", String ( rrsession ) );
         eepromSave();
 
@@ -552,9 +575,11 @@ void setupHTTPServer()
         //List all collected headers
         int headers = request->headers();
         int i;
-        for(i=0;i<headers;i++){
-          AsyncWebHeader* h = request->getHeader(i);
-          Serial.printf("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
+
+        for ( i = 0; i < headers; i++ )
+        {
+            AsyncWebHeader *h = request->getHeader ( i );
+            Serial.printf ( "HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str() );
         }
     } );
 
@@ -570,7 +595,7 @@ void setupHTTPServer()
         root["cpu_frequency"] = ESP.getCpuFreqMHz();
 
         root["cycle_count"] = ESP.getCycleCount();
-        root["voltage"] = ESP.getVcc();
+        root["voltage"] = ( ESP.getVcc() / 1000 );
 
         root["free_memory"] = ESP.getFreeHeap();
         root["sketch_size"] = ESP.getSketchSize();
@@ -583,15 +608,15 @@ void setupHTTPServer()
         SPIFFS.info ( fs_info );
         root["spiffs_size"] = fs_info.totalBytes;
         root["spiffs_used"] = fs_info.usedBytes;
-        root["spiffs_free"] = (fs_info.totalBytes - fs_info.usedBytes);
+        root["spiffs_free"] = ( fs_info.totalBytes - fs_info.usedBytes );
 
         char apIP[16];
-        sprintf( apIP, IPSTR, IP2STR( ip ));
+        sprintf ( apIP, IPSTR, IP2STR ( ip ) );
         root["softap_mac"] = WiFi.softAPmacAddress();
         root["softap_ip"] = apIP;
 
         char staIP[16];
-        sprintf( staIP, IPSTR, IP2STR( WiFi.localIP() ));
+        sprintf ( staIP, IPSTR, IP2STR ( WiFi.localIP() ) );
         root["station_mac"] = WiFi.macAddress();
         root["station_ip"] = staIP;
 
@@ -612,6 +637,8 @@ void setupHTTPServer()
         root["version"] = version;
         root["appid"] = appid;
         root["ssid"] = ssid;
+        root["channel"] = chan_selected;
+        root["interval"] = ( interval / 1000 / 60 );
         root["username"] = username;
         root["password"] = password;
         root["debug"] = DEBUG;
@@ -647,7 +674,7 @@ void setupOTAServer()
     ArduinoOTA.setHostname ( appid );
 
     // No authentication by default
-    ArduinoOTA.setPassword( password );
+    ArduinoOTA.setPassword ( password );
 
     // OTA callbacks
     ArduinoOTA.onStart ( []()
@@ -675,13 +702,77 @@ void setupOTAServer()
     {
         dbg_printf ( "Error[%u]: ", error );
 
-        if ( error == OTA_AUTH_ERROR ) dbg_printf ( "Auth Failed" );
-        else if ( error == OTA_BEGIN_ERROR ) dbg_printf ( "Begin Failed" );
-        else if ( error == OTA_CONNECT_ERROR ) dbg_printf ( "Connect Failed" );
-        else if ( error == OTA_RECEIVE_ERROR ) dbg_printf ( "Receive Failed" );
-        else if ( error == OTA_END_ERROR ) dbg_printf ( "End Failed" );
+        if ( error == OTA_AUTH_ERROR ) dbg_printf ( "OTA Auth Failed" );
+        else if ( error == OTA_BEGIN_ERROR ) dbg_printf ( "OTA Begin Failed" );
+        else if ( error == OTA_CONNECT_ERROR ) dbg_printf ( "OTA Connect Failed" );
+        else if ( error == OTA_RECEIVE_ERROR ) dbg_printf ( "OTA Receive Failed" );
+        else if ( error == OTA_END_ERROR ) dbg_printf ( "OTA End Failed" );
     } );
     ArduinoOTA.begin();
+}
+
+int scanWiFi ()
+{
+    int channels[11];
+    std::fill_n ( channels, 11, 0 );
+
+    dbg_printf ( "Scanning WiFi Networks" );
+    int networks = WiFi.scanNetworks();
+    dbg_printf ( "%d Networks Found", networks );
+    dbg_printf ( "RSSI  CHANNEL  ENCRYPTION  BSSID              SSID" );
+
+    for ( int network = 0; network < networks; network++ )
+    {
+        String ssid_scan;
+        int32_t rssi_scan;
+        uint8_t sec_scan;
+        uint8_t *BSSID_scan;
+        int32_t chan_scan;
+        bool hidden_scan;
+        WiFi.getNetworkInfo ( network, ssid_scan, sec_scan, rssi_scan, BSSID_scan, chan_scan, hidden_scan );
+
+        dbg_printf ( "%-6d%-9d%-12s%02X:%02X:%02X:%02X:%02X:%02X  %s",
+                     rssi_scan,
+                     chan_scan,
+                     encryptionTypes ( sec_scan ).c_str(),
+                     MAC2STR ( BSSID_scan ),
+                     ssid_scan.c_str()
+                   );
+
+        channels[ chan_scan ]++;
+    }
+
+    // Find least used channel
+    int lowest_count = 10000;
+
+    for ( int channel = 1; channel <= 11; channel++ )
+    {
+        // Include side channels to account for signal overlap
+        int current_count = 0;
+
+        for ( int i = channel - 2; i <= ( channel + 2 ); i++ )
+        {
+            if ( i > 0 )
+                current_count += channels[i];
+        }
+
+        if ( current_count < lowest_count )
+        {
+            lowest_count = current_count;
+            chan_selected = channel;
+        }
+
+        //Serial.printf( "Channel %d = %d\n", channel, current_count);
+    }
+
+    return chan_selected;
+}
+
+void onTimer ()
+{
+    dbg_printf ( "Auto WiFi scan initiated!" );
+    chan_selected = 0;
+    state = statemachine::ap_change;
 }
 
 void eepromLoad()
@@ -711,6 +802,8 @@ void eepromLoad()
     {
         // Load Settings from JSON
         sprintf ( ssid, "%s", root["ssid"].asString() );
+        channel = root["channel"];
+        interval = root["interval"];
         sprintf ( username, "%s", root["username"].asString() );
         sprintf ( password, "%s", root["password"].asString() );
 
@@ -741,6 +834,8 @@ void eepromSave()
     root["version"] = version;
     root["appid"] = appid;
     root["ssid"] = ssid;
+    root["channel"] = channel;
+    root["interval"] = interval;
     root["username"] = username;
     root["password"] = password;
     root["debug"] = DEBUG;
@@ -789,15 +884,28 @@ void loop ( void )
     dnsd.processNextRequest();
     ArduinoOTA.handle();  // Handle remote Wifi Updates
 
-    switch (state){
-        case statemachine::rr:
+    switch ( state )
+    {
+        case statemachine::beep_c:
+            beepC ( beepv );
+            state = statemachine::none;
+            break;
+
+        case statemachine::beep_rr:
             beep_rr();
             state = statemachine::none;
             break;
-        case statemachine::beep:
-            beepC(beepv);
+
+        case statemachine::scan_wifi:
+            scanWiFi();
             state = statemachine::none;
             break;
+
+        case statemachine::ap_change:
+            chan_selected = setupAP ( chan_selected );
+            state = statemachine::none;
+            break;
+
     }
 }
 
@@ -818,7 +926,7 @@ void onRequest ( AsyncWebServerRequest *request )
 
     String path = request->url();
 
-    if ( ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" )) ||  (request->host() != "10.10.10.1") )
+    if ( ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) ) ||  ( request->host() != "10.10.10.1" ) )
     {
         request->redirect ( "http://10.10.10.1/index.htm" );
     }
@@ -995,6 +1103,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             {
                 DEBUG = false;
             }
+
             CHANGED = true;
         }
 
@@ -1022,6 +1131,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             {
                 SILENT = false;
             }
+
             CHANGED = true;
         }
 
@@ -1107,9 +1217,10 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         if ( strstr ( msg, "rr" ) )
         {
             client->printf_P ( PSTR ( "[[b;green;]NEVER GONNA GIVE YOU UP!]" ) );
-            state = statemachine::rr;
+            state = statemachine::beep_rr;
         }
-        if ( strstr (msg, "c") )
+
+        if ( strstr ( msg, "c" ) )
         {
             int v = atoi ( &msg[6] );
 
@@ -1117,7 +1228,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
 
             client->printf_P ( PSTR ( "[[b;yellow;]CHIRP!] %dms" ) , v );
             beepv = v;
-            state = statemachine::beep;
+            state = statemachine::beep_c;
         }
         else
         {
@@ -1126,7 +1237,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             if ( v == 0 ) v = 50;
 
             client->printf_P ( PSTR ( "[[b;yellow;]BEEP!] %dms" ) , v );
-            beep( v );
+            beep ( v );
         }
 
     }
@@ -1165,12 +1276,87 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         else
         {
             sprintf ( ssid, "%s", &msg[5] );
-            client->printf_P ( PSTR ( "[[b;yellow;]Changing SSID:] %s" ) , ssid );
+            client->printf_P ( PSTR ( "[[b;yellow;]Changing WiFi SSID:] %s" ) , ssid );
 
             if ( !SILENT ) beep ( 500 );
 
             eepromSave();
-            setupAP();
+            state = statemachine::ap_change;
+        }
+    }
+    else if ( !strncasecmp_P ( msg, PSTR ( "chan" ), 4 ) )
+    {
+        if ( l == 4 )
+        {
+            if ( channel == 0 )
+            {
+                client->printf_P ( PSTR ( "[[b;yellow;]Channel:] AUTO (%d)" ) , WiFi.channel() );
+            }
+            else
+            {
+                client->printf_P ( PSTR ( "[[b;yellow;]Channel:] %d" ) , WiFi.channel() );
+            }
+        }
+        else
+        {
+            int v = atoi ( &msg[5] );
+
+            if ( v > 0 && v < 12 )
+            {
+                client->printf_P ( PSTR ( "[[b;yellow;]Changing WiFi Channel:] %d" ) , v );
+            }
+            else
+            {
+                v = 0;
+                client->printf_P ( PSTR ( "[[b;yellow;]Changing WiFi Channel:] AUTO" ) );
+            }
+
+            if ( !SILENT ) beep ( 500 );
+
+            channel = v;
+            chan_selected = v;
+            state = statemachine::ap_change;
+
+            CHANGED = true;
+        }
+    }
+    else if ( !strncasecmp_P ( msg, PSTR ( "scan" ), 4 ) )
+    {
+        state = statemachine::scan_wifi;
+    }
+    else if ( !strncasecmp_P ( msg, PSTR ( "int" ), 3 ) )
+    {
+        if ( l > 3 )
+        {
+            int v = atoi ( &msg[4] );
+
+            if ( v < 0 )
+            {
+                v = 0;
+                timer.detach();
+            }
+            else
+            {
+                v = 1000 * 60 * v;
+                timer.detach();
+                timer.attach_ms ( v, onTimer );
+                client->printf_P ( PSTR ( "[[b;yellow;]Auto Scan:] ENABLED" ) );
+            }
+
+            if ( !SILENT ) beep ( 500 );
+
+            interval = v;
+
+            CHANGED = true;
+        }
+
+        if ( interval == 0 )
+        {
+            client->printf_P ( PSTR ( "[[b;yellow;]Auto Scan:] DISABLED" ) );
+        }
+        else
+        {
+            client->printf_P ( PSTR ( "[[b;yellow;]Auto Scan Interval:] %d min(s)" ) , ( interval / 1000 / 60 ) );
         }
     }
     else if ( !strncasecmp_P ( msg, PSTR ( "save" ), 4 ) )
@@ -1186,25 +1372,27 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         File f;
 
         // Open "message.htm" file stream from SPIFFS
-        if ( SPIFFS.exists("/message.htm") )
+        if ( SPIFFS.exists ( "/message.htm" ) )
         {
-            Serial.println("File opened r+");
-            f = SPIFFS.open("/message.htm", "r+");
+            Serial.println ( "File opened r+" );
+            f = SPIFFS.open ( "/message.htm", "r+" );
         }
         else
         {
-            Serial.println("File opened w+");
-            f = SPIFFS.open("/message.htm", "w+");
+            Serial.println ( "File opened w+" );
+            f = SPIFFS.open ( "/message.htm", "w+" );
         }
 
-        if (!f) {
-            Serial.println("file open failed [/message.htm]");
+        if ( !f )
+        {
+            Serial.println ( "file open failed [/message.htm]" );
         }
         else
         {
             if ( l == 3 )
             {
-                Serial.println("Reading File");
+                Serial.println ( "Reading File" );
+
                 // Read Message from "message.htm" in SPIFFS
                 if ( f.size() > 0 )
                 {
@@ -1214,14 +1402,15 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             }
             else
             {
-                Serial.printf("Writing File: [%s]", &msg[4]);
+                Serial.printf ( "Writing File: [%s]", &msg[4] );
                 client->printf_P ( PSTR ( "[[b;yellow;]Changing Message:] %s" ) , &msg[4] );
 
                 if ( !SILENT ) beep ( 500 );
 
                 // Write Message to "message.htm" in SPIFFS
-                f.print( &msg[4] );
+                f.print ( &msg[4] );
             }
+
             f.close();
         }
 
