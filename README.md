@@ -1,4 +1,8 @@
 # ESP8266 Mobile Rick Roll Captive Portal
+### Live Chat
+
+[![Gitter](https://badges.gitter.im/mobile-rr/Lobby.svg)](https://gitter.im/mobile-rr/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 The purpose of this project was to help me get familiar with programming for the ESP8266 and have a bit of fun.
 
 [![ESP8266 Mobile-RR](https://i.ytimg.com/vi/ZpcRZoXQAzM/hqdefault.jpg)](https://www.youtube.com/watch?v=ZpcRZoXQAzM)
@@ -82,6 +86,4 @@ I learned everything I needed to create this from these projects
 - WiFiManager - https://github.com/tzapu/WiFiManager
 - ESP-GDBStub - https://github.com/esp8266/Arduino/tree/master/libraries/GDBStub
 
-### Live Chat
 
-[![Gitter](https://badges.gitter.im/mobile-rr/Lobby.svg)](https://gitter.im/mobile-rr/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
