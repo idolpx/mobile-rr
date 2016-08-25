@@ -81,3 +81,7 @@ I learned everything I needed to create this from these projects
 -          http://blog.squix.org/2015/08/esp8266arduino-playing-around-with.html
 - WiFiManager - https://github.com/tzapu/WiFiManager
 - ESP-GDBStub - https://github.com/esp8266/Arduino/tree/master/libraries/GDBStub
+
+### Live Chat
+
+[![Gitter](https://badges.gitter.im/mobile-rr/Lobby.svg)](https://gitter.im/mobile-rr/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
