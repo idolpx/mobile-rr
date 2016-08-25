@@ -539,10 +539,7 @@ void setupHTTPServer()
     // HTTP basic authentication
     httpd.on ( "/console", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
-        if ( !request->authenticate ( username, password ) )
-            return request->requestAuthentication();
-
-        request->send ( SPIFFS, "/console.htm" );
+        request->redirect ( "http://10.10.10.1/console.htm" );
     } );
     httpd.on ( "/console.htm", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
@@ -750,7 +747,7 @@ int scanWiFi ()
         // Include side channels to account for signal overlap
         int current_count = 0;
 
-        for ( int i = channel - 2; i <= ( channel + 2 ); i++ )
+        for ( int i = channel - 4; i <= ( channel + 4); i++ )
         {
             if ( i > 0 )
                 current_count += channels[i];
