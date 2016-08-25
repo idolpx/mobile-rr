@@ -20,7 +20,7 @@ The "debug" setting is on by default and shows you all DNS and HTTP requests mad
 * USB battery pack with micro-usb cable to power everything
 
 ## Wiring
-Connect the '+' lead of the piezo to GPIO 4 (D2 on WeMos D1 Mini) and '-' lead to Ground. 
+Connect the '+' lead of the piezo to GPIO 4 (D2 on WeMos D1 Mini) and '-' lead to Ground.
 I chose GPIO 4 because I installed the long leads with the headers on the WeMos D1 Mini. The spacing from ground was perfect to just plug the buzzer in direct between G & D2.
 
 ## Build Firmware
@@ -28,12 +28,7 @@ I use PlatformIO to build this.  http://platformio.org/
 
 * Install PlatformIO and let it update itself on first startup
 * Once updated and restarted, clone the "mobile-rr" project to a folder and open the project in PlatformIO
-* Next add the ESPAsyncTCP & ESPAsyncWebServer libraries by opening a terminal and entering "pio lib install 306"
-* You also need the Arduino JSON library. Enter "pio lib install 64" to install it.
-
-![Install Libraries](https://s20.postimg.org/o9hjq4fz1/instlal_libraries.png)
-
-* Then build it by clicking the checkmark icon on the toolbar
+* Next build the firmware by clicking the checkmark icon on the toolbar
 
 ![Build Firmware](https://s20.postimg.org/e9mna84pp/build_firmware.png)
 
@@ -42,9 +37,9 @@ After your firmware build is successful you can upload it by clicking the arrow 
 
 ![Upload Firmware](https://s20.postimg.org/ue4gppiot/upload_firmware.png)
 
-You can add/edit the files in the "data" folder to your liking. Then follow the instructions below to build and upload the SPIFFS file system image to your ESP8266. 
+You can add/edit the files in the "www" folder to your liking. (Files in the "www" folder will be cloned and gzipped to the "data" folder when building.) Then follow the instructions below to build and upload the SPIFFS file system image to your ESP8266.
 
-![Upload SPIFFS 1](https://s20.postimg.org/6kl7kreu5/image.png)
+![Upload SPIFFS 1](https://s20.postimg.org/6xvm3ixgd/build_spiffs.png)
 
 ![Upload SPIFFS 2](https://s20.postimg.org/vrw3l0hy5/image.png)
 
@@ -53,8 +48,8 @@ You can add/edit the files in the "data" folder to your liking. Then follow the 
 ## References
 I learned everything I needed to create this from these projects
 
-- PlatformIO - http://platformio.org/ <br>
-             http://docs.platformio.org/en/latest/platforms/espressif.html#uploading-files-to-file-system-spiffs
+- PlatformIO - http://platformio.org/
+-              http://docs.platformio.org/en/latest/platforms/espressif.html#uploading-files-to-file-system-spiffs
 - ESP8266 Captive Portal - https://www.hackster.io/rayburne/esp8266-captive-portal-5798ff
 - ESP-RADIO - https://github.com/Edzelf/Esp-radio
 - ESPAsyncWebServer - https://github.com/me-no-dev/ESPAsyncWebServer
@@ -66,3 +61,11 @@ I learned everything I needed to create this from these projects
 - Piezo Beep - http://framistats.com/2015/06/07/esp8266-arduino-smtp-server-part-2/
 - Simple Audio Board - http://bitcows.com/?p=19
 - Tone Doesn't Work - https://www.reddit.com/r/esp8266/comments/46kw38/esp8266_calling_tone_function_does_not_work/
+- ArduinoJson - https://github.com/bblanchon/ArduinoJson
+- EEPROM - https://gist.github.com/dogrocker/f998dde4dbac923c47c1
+- Exception Causes - https://github.com/esp8266/Arduino/blob/master/doc/exception_causes.md
+- WiFi Scan- https://www.linuxpinguin.de/project/wifiscanner/
+- SPIFFS - https://github.com/esp8266/Arduino/blob/master/doc/filesystem.md
+-          http://blog.squix.org/2015/08/esp8266arduino-playing-around-with.html
+- WiFiManager - https://github.com/tzapu/WiFiManager
+- ESP-GDBStub - https://github.com/esp8266/Arduino/tree/master/libraries/GDBStub

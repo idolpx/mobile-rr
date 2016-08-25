@@ -1219,27 +1219,28 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             client->printf_P ( PSTR ( "[[b;green;]NEVER GONNA GIVE YOU UP!]" ) );
             state = statemachine::beep_rr;
         }
-
-        if ( strstr ( msg, "c" ) )
-        {
-            int v = atoi ( &msg[6] );
-
-            if ( v == 0 ) v = 50;
-
-            client->printf_P ( PSTR ( "[[b;yellow;]CHIRP!] %dms" ) , v );
-            beepv = v;
-            state = statemachine::beep_c;
-        }
         else
         {
-            int v = atoi ( &msg[5] );
+            if ( strstr ( msg, "c" ) )
+            {
+                int v = atoi ( &msg[6] );
 
-            if ( v == 0 ) v = 50;
+                if ( v == 0 ) v = 50;
 
-            client->printf_P ( PSTR ( "[[b;yellow;]BEEP!] %dms" ) , v );
-            beep ( v );
+                client->printf_P ( PSTR ( "[[b;yellow;]CHIRP!] %dms" ) , v );
+                beepv = v;
+                state = statemachine::beep_c;
+            }
+            else
+            {
+                int v = atoi ( &msg[5] );
+
+                if ( v == 0 ) v = 50;
+
+                client->printf_P ( PSTR ( "[[b;yellow;]BEEP!] %dms" ) , v );
+                beep ( v );
+            }
         }
-
     }
     else if ( !strncasecmp_P ( msg, PSTR ( "user" ), 4 ) )
     {
