@@ -39,7 +39,7 @@ After your firmware build is successful you can upload it by clicking the arrow 
 
 You can add/edit the files in the "www" folder to your liking. (Files in the "www" folder will be cloned and gzipped to the "data" folder when building.) Then follow the instructions below to build and upload the SPIFFS file system image to your ESP8266.
 
-![Upload SPIFFS 1](https://s20.postimg.org/6xvm3ixgd/build_spiffs.png)
+![Upload SPIFFS 1](https://s20.postimg.org/p1ymo5v4t/build_spiffs.png)
 
 ![Upload SPIFFS 2](https://s20.postimg.org/vrw3l0hy5/image.png)
 
