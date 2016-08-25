@@ -34,9 +34,11 @@ There is currently an issue with the latest version of a few libraries that this
 
 Open the terminal in PlatformIO and enter the following commands.
 
+```
 > pio lib uninstall 305 306
 > pio lib install 305 --version=5987225cf6
 > pio lib install 306 --version=dab3077f2b
+```
 
 That will revert those libraries to the previous versions and everything will compile properly.
 
