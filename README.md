@@ -1,4 +1,6 @@
 # ESP8266 Mobile Rick Roll Captive Portal
+
+[![Join the chat at https://gitter.im/mobile-rr/Lobby](https://badges.gitter.im/mobile-rr/Lobby.svg)](https://gitter.im/mobile-rr/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 The purpose of this project was to help me get familiar with programming for the ESP8266 and have a bit of fun.
 
 [![ESP8266 Mobile-RR](https://i.ytimg.com/vi/ZpcRZoXQAzM/hqdefault.jpg)](https://www.youtube.com/watch?v=ZpcRZoXQAzM)
