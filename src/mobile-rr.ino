@@ -98,13 +98,14 @@ int             interval    = 1000 * 60 * 30;                                   
                   "[[b;cyan;]ssid 's']     show/set SSID to 's'\n" \
                   "[[b;cyan;]chan {0-11}]  show/set channel (0=auto)\n" \
                   "[[b;cyan;]int {n}]      show/set auto scan interval\n" \
-                  "                where 'n' is mins (0=off)\n" \
+                  "               where 'n' is mins (0=off)\n" \
                   "[[b;cyan;]msg 's']      show/set message to 's'\n" \
                   "[[b;cyan;]user 's']     show/set username to 's'\n" \
                   "[[b;cyan;]pass 's']     show/set password to 's'\n\n" \
                   "[[b;cyan;]beep {n/rr}]  sound piezo for 'n' ms\n" \
                   "[[b;cyan;]count]        show Rick Roll count\n" \
-                  "[[b;cyan;]eeprom]       show EEPROM contents\n" \
+                  "[[b;cyan;]json {e/s/i}] show EEPROM, App Settings,\n" \
+                  "               or System Information\n" \
                   "[[b;cyan;]info]         show system information\n\n" \
                   "[[b;cyan;]ls]           list SPIFFS files\n" \
                   "[[b;cyan;]cat 's']      read SPIFFS file 's'\n" \
@@ -587,14 +588,14 @@ void setupHTTPServer()
 
     httpd.on ( "/info", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
-        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/html", getSystemInfo() );
+        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/html", getSystemInformation() );
         response->addHeader ( "Access-Control-Allow-Origin", "http://localhost" );
         request->send ( response );
     } );
 
     httpd.on ( "/settings", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
-        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/html", getAppSettings() );
+        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/html", getApplicationSettings() );
         response->addHeader ( "Access-Control-Allow-Origin", "http://localhost" );
         request->send ( response );
     } );
@@ -729,7 +730,7 @@ void readFile( String file )
     }
 }
 
-String getSystemInfo()
+String getSystemInformation()
 {
     String json;
     StaticJsonBuffer<512> jsonBuffer;
@@ -771,7 +772,7 @@ String getSystemInfo()
     return json;
 }
 
-String getAppSettings()
+String getApplicationSettings()
 {
     String json;
     StaticJsonBuffer<512> jsonBuffer;
@@ -896,6 +897,21 @@ void eepromInitialize()
     }
 
     EEPROM.commit();
+}
+
+String getEEPROM()
+{
+    String json;
+
+    int i = 0;
+
+    while ( EEPROM.read ( i ) != 0 )
+    {
+        json += char ( EEPROM.read ( i ) );
+        i++;
+    }
+
+    return json;
 }
 
 
@@ -1494,19 +1510,29 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
 
         client->printf_P ( PSTR ( "[[b;yellow;]Rick Roll Count]: %d Session, %d Total" ) , rrsession, rrtotal );
     }
-    else if ( !strcasecmp_P ( msg, PSTR ( "eeprom" ) ) )
+    else if ( !strncasecmp_P ( msg, PSTR ( "json" ), 4 ) )
     {
-        String json;
-
-        int i = 0;
-
-        while ( EEPROM.read ( i ) != 0 )
+        if (l > 4)
         {
-            json += char ( EEPROM.read ( i ) );
-            i++;
-        }
+            String json;
 
-        client->printf_P ( json.c_str() );
+            if ( !strncasecmp_P ( &msg[5], PSTR ( "e" ), 1 ) )
+            {
+                // EEPROM
+                json = getEEPROM();
+            }
+            else if ( !strncasecmp_P ( &msg[5], PSTR ( "s" ), 1 ) )
+            {
+                // Settings
+                json = getApplicationSettings();
+            }
+            else if ( !strncasecmp_P ( &msg[5], PSTR ( "i" ), 1 ) )
+            {
+                // information
+                json = getSystemInformation();
+            }
+            client->printf_P ( json.c_str() );
+        }
     }
     else if ( !strcasecmp_P ( msg, PSTR ( "reset" ) ) )
     {
