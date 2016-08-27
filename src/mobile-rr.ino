@@ -530,6 +530,7 @@ void setupDNSServer()
         dbg_printf ( "DNS Override [%d]: %s -> " IPSTR, remoteIP[3], domain, IP2STR ( overrideIP ) );
     } );
     dnsd.setErrorReplyCode ( DNSReplyCode::NoError );
+    dnsd.setTTL(0);
     dnsd.start ( 53, "*", ip );
 }
 
@@ -957,7 +958,11 @@ void onRequest ( AsyncWebServerRequest *request )
 
     if ( ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) ) ||  ( request->host() != "10.10.10.1" ) )
     {
-        request->redirect ( "http://10.10.10.1/index.htm" );
+        AsyncWebServerResponse *response = request->beginResponse(302);
+        response->addHeader("Cache-Control","no-cache");
+        response->addHeader("Pragma","no-cache");
+        response->addHeader ("Location", "http://10.10.10.1/index.htm" );
+        request->send(response);
     }
     else
     {
