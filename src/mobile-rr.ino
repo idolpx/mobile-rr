@@ -104,9 +104,9 @@ int             interval    = 1000 * 60 * 30;                                   
                   "[[b;cyan;]pass 's']     show/set password to 's'\n\n" \
                   "[[b;cyan;]beep {n/rr}]  sound piezo for 'n' ms\n" \
                   "[[b;cyan;]count]        show Rick Roll count\n" \
+                  "[[b;cyan;]info]         show system information\n" \
                   "[[b;cyan;]json {e/s/i}] show EEPROM, App Settings,\n" \
-                  "               or System Information\n" \
-                  "[[b;cyan;]info]         show system information\n\n" \
+                  "               or System Information\n\n" \
                   "[[b;cyan;]ls]           list SPIFFS files\n" \
                   "[[b;cyan;]cat 's']      read SPIFFS file 's'\n" \
                   "[[b;cyan;]rm 's']       remove SPIFFS file 's'\n\n" \
