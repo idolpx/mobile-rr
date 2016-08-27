@@ -125,6 +125,7 @@ typedef struct
 enum class statemachine
 {
     none,
+    beep,
     beep_c,
     beep_rr,
     scan_wifi,
@@ -234,16 +235,8 @@ String formatBytes ( size_t bytes )
 //***************************************************************************
 void beep ( int delayms )
 {
-    delayms = delayms * 100000;
-
-    while ( delayms > 0 )
-    {
-        digitalWrite ( PIEZO_PIN, HIGH );                                       // Turn PIEZO on
-        delay ( 1000 );                                                         // wait for a delayms ms
-
-        delayms -= 1000;
-    }
-
+    digitalWrite ( PIEZO_PIN, HIGH );                                           // Turn PIEZO on
+    delay ( delayms );                                                          // wait for a delayms ms
     digitalWrite ( PIEZO_PIN, LOW );                                            // Turn PIEZO off
 }
 
@@ -927,32 +920,33 @@ void loop ( void )
 
     switch ( state )
     {
+        case statemachine::beep:
+            beep ( state_int );
+            break;
+
         case statemachine::beep_c:
             beepC ( state_int );
-            state = statemachine::none;
             break;
 
         case statemachine::beep_rr:
             beep_rr();
-            state = statemachine::none;
             break;
 
         case statemachine::scan_wifi:
             scanWiFi();
-            state = statemachine::none;
             break;
 
         case statemachine::ap_change:
             chan_selected = setupAP ( chan_selected );
-            state = statemachine::none;
             break;
 
         case statemachine::read_file:
             readFile( state_string );
-            state = statemachine::none;
             break;
-
     }
+    state = statemachine::none;
+    state_int = 0;
+    state_string = "";
 }
 
 //***************************************************************************
@@ -1319,7 +1313,8 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                 if ( v == 0 ) v = 50;
 
                 client->printf_P ( PSTR ( "[[b;yellow;]BEEP!] %dms" ) , v );
-                beep ( v );
+                state_int = v;
+                state = statemachine::beep;
             }
         }
     }
