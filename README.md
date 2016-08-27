@@ -33,18 +33,6 @@ I use PlatformIO to build this.  http://platformio.org/
 * Once updated and restarted, clone the "mobile-rr" project to a folder and open the project in PlatformIO
 * Next build the firmware by clicking the checkmark icon on the toolbar
 
-There is currently an issue with the latest version of a few libraries that this project depends on. To get things to compile you have to enter the following commands into the PlatformIO terminal.
-
-Open the terminal in PlatformIO and enter the following commands.
-
-```
-> pio lib uninstall 305 306
-> pio lib install 305 --version=5987225cf6
-> pio lib install 306 --version=dab3077f2b
-```
-
-That will revert those libraries to the previous versions and everything will compile properly.
-
 ![Build Firmware](https://s20.postimg.org/e9mna84pp/build_firmware.png)
 
 ## Upload Firmware and SPIFFS data
@@ -84,5 +72,3 @@ I learned everything I needed to create this from these projects
 -          http://blog.squix.org/2015/08/esp8266arduino-playing-around-with.html
 - WiFiManager - https://github.com/tzapu/WiFiManager
 - ESP-GDBStub - https://github.com/esp8266/Arduino/tree/master/libraries/GDBStub
-
-
