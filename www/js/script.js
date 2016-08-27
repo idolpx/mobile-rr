@@ -60,7 +60,7 @@ jQuery(document).ready(function($) {
             if (msg.indexOf("Progress:") > -1)
             {
                 i = parseInt(msg.substring(10));
-                string = progress(i, 40);
+                string = progress(i, 35);
 
                 term.set_prompt(string);
 

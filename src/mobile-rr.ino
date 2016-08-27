@@ -81,7 +81,7 @@ bool            DEBUG       = 1;
 bool            SILENT      = 0;
 int             interval    = 1000 * 60 * 30;                                   // 30 Minutes in Milliseconds
 
-#define PIEZO_PIN   4
+#define PIEZO_PIN       4
 
 // Maximum number of simultaneous clients connected (WebSocket)
 #define MAX_WS_CLIENT   5
@@ -105,8 +105,10 @@ int             interval    = 1000 * 60 * 30;                                   
                   "[[b;cyan;]beep {n/rr}]  sound piezo for 'n' ms\n" \
                   "[[b;cyan;]count]        show Rick Roll count\n" \
                   "[[b;cyan;]eeprom]       show EEPROM contents\n" \
-                  "[[b;cyan;]info]         show system information\n" \
+                  "[[b;cyan;]info]         show system information\n\n" \
                   "[[b;cyan;]ls]           list SPIFFS files\n" \
+                  "[[b;cyan;]cat 's']      read SPIFFS file 's'\n" \
+                  "[[b;cyan;]rm 's']       remove SPIFFS file 's'\n\n" \
                   "[[b;cyan;]scan]         scan WiFi networks in area\n\n" \
                   "[[b;cyan;]reboot]       reboot system\n" \
                   "[[b;cyan;]reset]        reset default settings\n" \
@@ -125,10 +127,12 @@ enum class statemachine
     beep_c,
     beep_rr,
     scan_wifi,
-    ap_change
+    ap_change,
+    read_file
 };
-statemachine state = statemachine::none;
-int beepv;
+statemachine    state = statemachine::none;
+int             state_int;
+String          state_string;
 
 IPAddress       ip ( 10, 10, 10, 1 );                                           // Private network for httpd
 DNSServer       dnsd;                                                           // Create the DNS object
@@ -582,72 +586,14 @@ void setupHTTPServer()
 
     httpd.on ( "/info", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
-        StaticJsonBuffer<512> jsonBuffer;
-        JsonObject &root = jsonBuffer.createObject();
-
-        root["sdk_version"] = ESP.getSdkVersion();
-        root["boot_version"] = ESP.getBootVersion();
-        root["boot_mode"] = ESP.getBootMode();
-        root["chipid"] = ESP.getChipId();
-        root["cpu_frequency"] = ESP.getCpuFreqMHz();
-
-        root["cycle_count"] = ESP.getCycleCount();
-        root["voltage"] = ( ESP.getVcc() / 1000 );
-
-        root["free_memory"] = ESP.getFreeHeap();
-        root["sketch_size"] = ESP.getSketchSize();
-        root["sketch_free"] = ESP.getFreeSketchSpace();
-
-        root["flash_size"] = ESP.getFlashChipRealSize();
-        root["flash_speed"] = ( ESP.getFlashChipSpeed() / 1000000 );
-
-        FSInfo fs_info;
-        SPIFFS.info ( fs_info );
-        root["spiffs_size"] = fs_info.totalBytes;
-        root["spiffs_used"] = fs_info.usedBytes;
-        root["spiffs_free"] = ( fs_info.totalBytes - fs_info.usedBytes );
-
-        char apIP[16];
-        sprintf ( apIP, IPSTR, IP2STR ( ip ) );
-        root["softap_mac"] = WiFi.softAPmacAddress();
-        root["softap_ip"] = apIP;
-
-        char staIP[16];
-        sprintf ( staIP, IPSTR, IP2STR ( WiFi.localIP() ) );
-        root["station_mac"] = WiFi.macAddress();
-        root["station_ip"] = staIP;
-
-        char buffer[512];
-        root.printTo ( buffer, sizeof ( buffer ) );
-        //request->send ( 200, "text/html", buffer );
-
-        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/html", buffer );
+        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/html", getSystemInfo() );
         response->addHeader ( "Access-Control-Allow-Origin", "http://localhost" );
         request->send ( response );
     } );
 
     httpd.on ( "/settings", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
-        StaticJsonBuffer<512> jsonBuffer;
-        JsonObject &root = jsonBuffer.createObject();
-
-        root["version"] = version;
-        root["appid"] = appid;
-        root["ssid"] = ssid;
-        root["channel"] = chan_selected;
-        root["interval"] = ( interval / 1000 / 60 );
-        root["username"] = username;
-        root["password"] = password;
-        root["debug"] = DEBUG;
-        root["silent"] = SILENT;
-        root["rrsession"] = rrsession;
-        root["rrtotal"] = rrtotal;
-
-        char buffer[512];
-        root.printTo ( buffer, sizeof ( buffer ) );
-        //request->send ( 200, "text/html", buffer );
-
-        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/html", buffer );
+        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/html", getAppSettings() );
         response->addHeader ( "Access-Control-Allow-Origin", "http://localhost" );
         request->send ( response );
     } );
@@ -763,6 +709,87 @@ int scanWiFi ()
     }
 
     return chan_selected;
+}
+
+void readFile( String file )
+{
+    File f = SPIFFS.open(file, "r");
+    if (!f) {
+        Serial.println("file open failed");
+    }
+    else
+    {
+        while(f.available()) {
+            String line = f.readStringUntil('n');
+            if ( ws.count() )
+                ws.textAll ( line );
+        }
+        f.close();
+    }
+}
+
+String getSystemInfo()
+{
+    String json;
+    StaticJsonBuffer<512> jsonBuffer;
+    JsonObject &root = jsonBuffer.createObject();
+
+    root["sdk_version"] = ESP.getSdkVersion();
+    root["boot_version"] = ESP.getBootVersion();
+    root["boot_mode"] = ESP.getBootMode();
+    root["chipid"] = ESP.getChipId();
+    root["cpu_frequency"] = ESP.getCpuFreqMHz();
+
+    root["cycle_count"] = ESP.getCycleCount();
+    root["voltage"] = ( ESP.getVcc() / 1000 );
+
+    root["free_memory"] = ESP.getFreeHeap();
+    root["sketch_size"] = ESP.getSketchSize();
+    root["sketch_free"] = ESP.getFreeSketchSpace();
+
+    root["flash_size"] = ESP.getFlashChipRealSize();
+    root["flash_speed"] = ( ESP.getFlashChipSpeed() / 1000000 );
+
+    FSInfo fs_info;
+    SPIFFS.info ( fs_info );
+    root["spiffs_size"] = fs_info.totalBytes;
+    root["spiffs_used"] = fs_info.usedBytes;
+    root["spiffs_free"] = ( fs_info.totalBytes - fs_info.usedBytes );
+
+    char apIP[16];
+    sprintf ( apIP, IPSTR, IP2STR ( WiFi.softAPIP() ) );
+    root["softap_mac"] = WiFi.softAPmacAddress();
+    root["softap_ip"] = apIP;
+
+    char staIP[16];
+    sprintf ( staIP, IPSTR, IP2STR ( WiFi.localIP() ) );
+    root["station_mac"] = WiFi.macAddress();
+    root["station_ip"] = staIP;
+
+    root.printTo( json );
+    return json;
+}
+
+String getAppSettings()
+{
+    String json;
+    StaticJsonBuffer<512> jsonBuffer;
+    JsonObject &root = jsonBuffer.createObject();
+
+    root["version"] = version;
+    root["appid"] = appid;
+    root["ssid"] = ssid;
+    root["channel"] = chan_selected;
+    root["interval"] = ( interval / 1000 / 60 );
+    root["username"] = username;
+    root["password"] = password;
+    root["debug"] = DEBUG;
+    root["silent"] = SILENT;
+    root["rrsession"] = rrsession;
+    root["rrtotal"] = rrtotal;
+
+    root.printTo( json );
+    return json;
 }
 
 void onTimer ()
@@ -884,7 +911,7 @@ void loop ( void )
     switch ( state )
     {
         case statemachine::beep_c:
-            beepC ( beepv );
+            beepC ( state_int );
             state = statemachine::none;
             break;
 
@@ -900,6 +927,11 @@ void loop ( void )
 
         case statemachine::ap_change:
             chan_selected = setupAP ( chan_selected );
+            state = statemachine::none;
+            break;
+
+        case statemachine::read_file:
+            readFile( state_string );
             state = statemachine::none;
             break;
 
@@ -1175,6 +1207,37 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                            formatBytes ( fs_info.totalBytes - fs_info.usedBytes ).c_str()
                          );
     }
+    else if ( !strncasecmp_P ( msg, PSTR ( "cat" ), 3 ) )
+    {
+        if ( !strncasecmp_P ( msg, PSTR ( "cat " ), 4 ) )
+        {
+            if ( SPIFFS.exists(&msg[4]) )
+            {
+                state_string = &msg[4];
+                state = statemachine::read_file;
+            }
+            else
+            {
+                client->printf_P ( PSTR ( "[[b;red;]cat: %s: No such file or directory]" ), &msg[4] );
+            }
+
+        }
+    }
+    else if ( !strncasecmp_P ( msg, PSTR ( "rm" ), 2 ) )
+    {
+        if ( !strncasecmp_P ( msg, PSTR ( "rm " ), 3 ) )
+        {
+            if ( SPIFFS.exists(&msg[3]) )
+            {
+                SPIFFS.remove(&msg[3]);
+            }
+            else
+            {
+                client->printf_P ( PSTR ( "[[b;red;]rm: %s: No such file or directory]" ), &msg[3] );
+            }
+
+        }
+    }
     else if ( !strcasecmp_P ( msg, PSTR ( "info" ) ) )
     {
         uint8_t mac[6];
@@ -1225,7 +1288,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                 if ( v == 0 ) v = 50;
 
                 client->printf_P ( PSTR ( "[[b;yellow;]CHIRP!] %dms" ) , v );
-                beepv = v;
+                state_int = v;
                 state = statemachine::beep_c;
             }
             else
@@ -1320,6 +1383,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
     }
     else if ( !strncasecmp_P ( msg, PSTR ( "scan" ), 4 ) )
     {
+        client->printf_P ( PSTR ( "[[b;yellow;]WiFi scan initiated!]" ) );
         state = statemachine::scan_wifi;
     }
     else if ( !strncasecmp_P ( msg, PSTR ( "int" ), 3 ) )
@@ -1372,31 +1436,26 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         // Open "message.htm" file stream from SPIFFS
         if ( SPIFFS.exists ( "/message.htm" ) )
         {
-            Serial.println ( "File opened r+" );
+            //Serial.println ( "File opened r+" );
             f = SPIFFS.open ( "/message.htm", "r+" );
         }
         else
         {
-            Serial.println ( "File opened w+" );
+            //Serial.println ( "File opened w+" );
             f = SPIFFS.open ( "/message.htm", "w+" );
         }
 
         if ( !f )
         {
-            Serial.println ( "file open failed [/message.htm]" );
+            client->printf_P ( PSTR ( "[[b;red;]File open failed:] /message.htm" ) );
         }
         else
         {
             if ( l == 3 )
             {
-                Serial.println ( "Reading File" );
-
-                // Read Message from "message.htm" in SPIFFS
-                if ( f.size() > 0 )
-                {
-                    String s = f.readString();
-                    client->printf_P ( PSTR ( "[[b;yellow;]Message:] %s" ) , s.c_str() );
-                }
+                client->printf_P ( PSTR ( "[[b;yellow;]Reading:] /message.htm" ) );
+                state_string = "/message.htm";
+                state = statemachine::read_file;
             }
             else
             {
@@ -1408,11 +1467,8 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                 // Write Message to "message.htm" in SPIFFS
                 f.print ( &msg[4] );
             }
-
             f.close();
         }
-
-
     }
     else if ( !strncasecmp_P ( msg, PSTR ( "count" ), 5 ) )
     {

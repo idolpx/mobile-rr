@@ -20,6 +20,14 @@ def gzFile (file):
         shutil.copyfileobj(f_in, f_out)
     os.remove(file)
 
+# remove 'data' folder after upload
+def after_upload(source, target, env):
+    print "after_upload"
+    shutil.rmtree(data)
+
+# Only run when building & uploading SPIFFS image
+env.AddPostAction("uploadfs", after_upload)
+
 # Show parameters
 print data
 print www
@@ -27,13 +35,9 @@ print pattern
 
 # Only run this script when building SPIFFS image
 if 'SPIFFS_START' in env:
-    # clone 'html' folder to 'data' folder
+    # clone 'www' folder to 'data' folder
     files = dir_util.copy_tree(www, data, )
     for file in files:
         if re.search(pattern, file):
             print file
             gzFile( file )
-
-    with open(data + "do-not-modify-files-in-here.txt", "w") as file:
-        file.write("These files will be overwritten when building the SPIFFS image!\n")
-        file.write("Modify the files in the 'www' folder instead.")
