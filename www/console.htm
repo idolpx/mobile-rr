@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name='viewport' content='width=device-width,initial-scale=1'>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>ESP8266 Mobile Rick Roll</title>
+    <script src="js/jquery.js"></script>
+    <script src="js/jquery.mobile.js"></script>
+    <link href="css/jquery.mobile.css" rel="stylesheet" />
+    <script src="js/terminal.js"></script>
+    <link href="css/terminal.css" rel="stylesheet" />
+    <script src="js/mousewheel.js"></script>
+    <script src="js/script.js"></script>
+    <link href="css/style.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div data-role="page" id="gui">
+        <div data-role="header" id="header">
+            <a href="#info" data-icon="info" data-transition="slide" data-direction="reverse">INFO</a>
+            <h1>ESP8266 Mobile Rick Roll</h1>
+            <a href="#settings" data-icon="gear" data-transition="slide" class="ui-btn-right">Settings</a>
+        </div>
+        <div data-role="content">
+            <div id="controls">
+                <div class="ui-grid-c ui-responsive">
+                    <div class="ui-block-a">
+                        <button class="command ui-corner-all" data-mini="true" value="help">HELP</button>
+                    </div>
+                    <div class="ui-block-b">
+                        <button class="command ui-corner-all" data-mini="true" value="info">INFO</button>
+                    </div>
+                    <div class="ui-block-c">
+                        <button class="command ui-corner-all" data-mini="true" value="eeprom">EEPROM</button>
+                    </div>
+                    <div class="ui-block-d">
+                        <button class="command ui-corner-all" data-mini="true" value="ls">LS</button>
+                    </div>
+                </div>
+                <div class="ui-grid-c ui-responsive">
+                    <div class="ui-block-a">
+                        <input type="text" value="50" />
+                    </div>
+                    <div class="ui-block-b">
+                        <button class="command ui-corner-all" data-mini="true" value="beep 50">BEEP</button>
+                    </div>
+                    <div class="ui-block-c">
+                        <button class="command ui-corner-all" data-mini="true" value="beep rr">BEEP RR</button>
+                    </div>
+                    <div class="ui-block-d">
+                        <button class="command ui-corner-all" data-mini="true" value="count">COUNT</button>
+                    </div>
+                </div>
+            </div>
+            <div id="drawer">
+                <hr />
+                <hr />
+            </div>
+            <div id="console"></div>
+        </div>
+        <div data-role="footer" id="footer">
+
+
+            <div class="ui-grid-b ui-responsive">
+                <div class="ui-block-a" style="width:78%">
+                    <input id="cmdline" type="text" data-mini="true" placeholder="Enter command here" />
+                </div>
+                <div class="ui-block-b" style="width:12%; font-color: ">
+                    <input id="rrsession" type="text" data-mini="true" placeholder="Session: 999"  format="formatString('Session: {value}')" />
+                </div>
+                <div class="ui-block-c" style="width:10%">
+                    <input id="rrtotal" type="text" data-mini="true" placeholder="Total: 999"  format="formatString('Total: {value}')" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div data-role="page" id="info">
+        <div data-role="header">
+            <h1>ESP8266 Mobile Rick Roll</h1>
+            <a data-rel="back" data-icon="back">Back</a>
+        </div>
+        <div data-role="content">
+            <div class="ui-field-contain">
+                <label for="sdk_version">SDK Version:</label>
+                <input type="text" name="sdk_version" id="sdk_version" data-mini="true">
+                <label for="boot_version">Boot Version:</label>
+                <input type="text" name="boot_version" id="boot_version" data-mini="true">
+                <label for="chipid">Chip ID:</label>
+                <input type="text" name="chipid" id="chipid" data-mini="true">
+                <label for="cpu_frequency">CPU Frequency:</label>
+                <input type="text" name="cpu_frequency" id="cpu_frequency" data-mini="true" format="formatString('{value} MHz')">
+                <label for="cycle_count">Cycle Count:</label>
+                <input type="text" name="cycle_count" id="cycle_count" data-mini="true">
+                <label for="voltage">Voltage:</label>
+                <input type="text" name="voltage" id="voltage" data-mini="true" format="formatString('{value}v')">
+                <label for="free_memory">Free Memory:</label>
+                <input type="text" name="free_memory" id="free_memory" data-mini="true" format="formatString('{value} B')">
+                <label for="sketch_size">Sketch Size:</label>
+                <input type="text" name="sketch_size" id="sketch_size" data-mini="true" format="bytesToSize({value})">
+                <label for="sketch_free">Sketch Free:</label>
+                <input type="text" name="sketch_free" id="sketch_free" data-mini="true" format="bytesToSize({value})">
+                <label for="flash_size">Flash Size:</label>
+                <input type="text" name="flash_size" id="flash_size" data-mini="true" format="bytesToSize({value})">
+                <label for="flash_speed">Flash Speed:</label>
+                <input type="text" name="flash_speed" id="flash_speed" data-mini="true" format="formatString('{value} MHz')">
+                <label for="spiffs_size">SPIFFS Size:</label>
+                <input type="text" name="spiffs_size" id="spiffs_size" data-mini="true" format="bytesToSize({value})">
+                <label for="spiffs_used">SPIFFS Used:</label>
+                <input type="text" name="spiffs_used" id="spiffs_used" data-mini="true" format="bytesToSize({value})">
+                <label for="spiffs_free">SPIFFS Free:</label>
+                <input type="text" name="spiffs_free" id="spiffs_free" data-mini="true" format="bytesToSize({value})">
+                <label for="softap_mac">Soft AP MAC:</label>
+                <input type="text" name="softap_mac" id="softap_mac" data-mini="true">
+                <label for="softap_ip">Soft AP IP:</label>
+                <input type="text" name="softap_ip" id="softap_ip" data-mini="true">
+                <label for="station_mac">Station MAC:</label>
+                <input type="text" name="station_mac" id="station_mac" data-mini="true">
+                <label for="station_ip">Station IP:</label>
+                <input type="text" name="station_ip" id="station_ip" data-mini="true">
+
+                <label for="info_json">Textarea:</label>
+                <textarea name="info_json" id="info_json"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div data-role="page" id="settings">
+        <div data-role="header">
+            <h1>ESP8266 Mobile Rick Roll</h1>
+            <a data-rel="back" data-icon="back">Back</a>
+        </div>
+        <div data-role="content">
+            <div class="ui-field-contain">
+                <label for="ssid">SSID:</label>
+                <input type="text" name="ssid" id="ssid" data-mini="true">
+                <label for="channel">Channel:</label>
+                <input type="text" name="channel" id="channel" data-mini="true">
+                <label for="interval">Auto Scan Interval:</label>
+                <input type="text" name="interval" id="interval" data-mini="true">
+                <label for="username">Username:</label>
+                <input type="text" name="username" id="username" data-mini="true">
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" data-mini="true">
+                <label for="debug">Debug Mode:</label>
+                <select name="debug" id="debug" data-role="slider" data-mini="true" format="boolToOnOff({value})">
+                    <option value="off">Off</option>
+                    <option value="on">On</option>
+                </select>
+                <label for="silent">Silent Mode:</label>
+                <select name="silent" id="silent" data-role="slider" data-mini="true" format="boolToOnOff({value})">
+                    <option value="off">Off</option>
+                    <option value="on">On</option>
+                </select>
+                <label for="msg">Rick Roll Message:</label>
+                <textarea name="msg" id="msg" data-mini="true"></textarea>
+                <label for="settings_json">Textarea:</label>
+                <textarea name="settings_json" id="settings_json" data-mini="true"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div id="loader"></div>
+</body>
+
+</html>
