@@ -542,8 +542,9 @@ void setupHTTPServer()
     } );
     httpd.on ( "/console.htm", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
-        if ( !request->authenticate ( username, password ) )
-            return request->requestAuthentication();
+        if ( strlen( username ) > 0 && strlen( password ) > 0 )
+            if ( !request->authenticate ( username, password ) )
+                return request->requestAuthentication();
 
         request->send ( SPIFFS, "/console.htm" );
     } );
@@ -566,7 +567,11 @@ void setupHTTPServer()
         request->send ( 200, "text/html", String ( rrsession ) );
         eepromSave();
 
-        if ( !SILENT ) beepC ( 200 );
+        if ( !SILENT )
+        {
+            state_int = 200;
+            state = statemachine::beep_c;
+        }
 
         //List all collected headers
         int headers = request->headers();
@@ -1355,7 +1360,11 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             sprintf ( ssid, "%s", &msg[5] );
             client->printf_P ( PSTR ( "[[b;yellow;]Changing WiFi SSID:] %s" ) , ssid );
 
-            if ( !SILENT ) beep ( 500 );
+            if ( !SILENT )
+            {
+                state_int = 500;
+                state = statemachine::beep;
+            }
 
             eepromSave();
             state = statemachine::ap_change;
@@ -1388,7 +1397,11 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                 client->printf_P ( PSTR ( "[[b;yellow;]Changing WiFi Channel:] AUTO" ) );
             }
 
-            if ( !SILENT ) beep ( 500 );
+            if ( !SILENT )
+            {
+                state_int = 500;
+                state = statemachine::beep;
+            }
 
             channel = v;
             chan_selected = v;
@@ -1421,7 +1434,11 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                 client->printf_P ( PSTR ( "[[b;yellow;]Auto Scan:] ENABLED" ) );
             }
 
-            if ( !SILENT ) beep ( 500 );
+            if ( !SILENT )
+            {
+                state_int = 500;
+                state = statemachine::beep;
+            }
 
             interval = v;
 
@@ -1441,7 +1458,11 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
     {
         client->printf_P ( PSTR ( "[[b;green;]Saving Settings to EEPROM]" ) );
 
-        if ( !SILENT ) beep ( 500 );
+        if ( !SILENT )
+        {
+            state_int = 500;
+            state = statemachine::beep;
+        }
 
         eepromSave();
     }
@@ -1478,7 +1499,11 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                 Serial.printf ( "Writing File: [%s]", &msg[4] );
                 client->printf_P ( PSTR ( "[[b;yellow;]Changing Message:] %s" ) , &msg[4] );
 
-                if ( !SILENT ) beep ( 500 );
+                if ( !SILENT )
+                {
+                    state_int = 500;
+                    state = statemachine::beep;
+                }
 
                 // Write Message to "message.htm" in SPIFFS
                 f.print ( &msg[4] );
@@ -1497,7 +1522,11 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                 rrsession = v;
                 rrtotal = v;
 
-                if ( !SILENT ) beep ( 500 );
+                if ( !SILENT )
+                {
+                    state_int = 500;
+                    state = statemachine::beep;
+                }
 
                 eepromSave();
             }
