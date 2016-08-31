@@ -76,10 +76,10 @@ const char      *appid      = "mobile-rr";
 char            ssid[]      = "FREE Highspeed WiFi";
 int             channel     = 0;
 char            username[]  = "admin";
-char            password[]  = "password";
+char            password[]  = "";
 bool            DEBUG       = 1;
 bool            SILENT      = 0;
-int             interval    = 1000 * 60 * 30;                                   // 30 Minutes in Milliseconds
+int             interval    = 30;                                               // 30 Minutes
 
 #define PIEZO_PIN       4
 
@@ -428,7 +428,7 @@ void setup ( void )
     if ( interval )
     {
         dbg_printf ( "Starting Auto WiFi Scan Timer" );
-        timer.attach_ms ( interval, onTimer );
+        timer.attach_ms ( ( 1000 * 60 * interval ), onTimer );
     }
 
 
@@ -780,7 +780,7 @@ String getApplicationSettings()
     root["appid"] = appid;
     root["ssid"] = ssid;
     root["channel"] = chan_selected;
-    root["interval"] = ( interval / 1000 / 60 );
+    root["interval"] = ( interval );
     root["username"] = username;
     root["password"] = password;
     root["debug"] = DEBUG;
@@ -1428,7 +1428,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             }
             else
             {
-                v = 1000 * 60 * v;
+                v = v;
                 timer.detach();
                 timer.attach_ms ( v, onTimer );
                 client->printf_P ( PSTR ( "[[b;yellow;]Auto Scan:] ENABLED" ) );
@@ -1451,7 +1451,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         }
         else
         {
-            client->printf_P ( PSTR ( "[[b;yellow;]Auto Scan Interval:] %d min(s)" ) , ( interval / 1000 / 60 ) );
+            client->printf_P ( PSTR ( "[[b;yellow;]Auto Scan Interval:] %d min(s)" ) , interval );
         }
     }
     else if ( !strncasecmp_P ( msg, PSTR ( "save" ), 4 ) )

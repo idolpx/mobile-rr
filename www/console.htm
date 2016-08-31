@@ -6,12 +6,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>ESP8266 Mobile Rick Roll</title>
-    <script src="js/jquery.js"></script>
-    <script src="js/jquery.mobile.js"></script>
-    <link href="css/jquery.mobile.css" rel="stylesheet" />
-    <script src="js/terminal.js"></script>
-    <link href="css/terminal.css" rel="stylesheet" />
-    <script src="js/mousewheel.js"></script>
     <script src="js/script.js"></script>
     <link href="css/style.css" rel="stylesheet" />
 </head>
@@ -33,18 +27,18 @@
                         <button class="command ui-corner-all" data-mini="true" value="info">INFO</button>
                     </div>
                     <div class="ui-block-c">
-                        <button class="command ui-corner-all" data-mini="true" value="eeprom">EEPROM</button>
+                        <button class="command ui-corner-all" data-mini="true" value="ls">LS</button>
                     </div>
                     <div class="ui-block-d">
-                        <button class="command ui-corner-all" data-mini="true" value="ls">LS</button>
+                        <button class="command ui-corner-all" data-mini="true" value="scan">SCAN</button>
                     </div>
                 </div>
                 <div class="ui-grid-c ui-responsive">
                     <div class="ui-block-a">
-                        <input type="text" value="50" />
+                        <button class="command ui-corner-all" data-mini="true" value="beep 50">BEEP 50</button>
                     </div>
                     <div class="ui-block-b">
-                        <button class="command ui-corner-all" data-mini="true" value="beep 50">BEEP</button>
+                        <button class="command ui-corner-all" data-mini="true" value="beepc 200">BEEPC 200</button>
                     </div>
                     <div class="ui-block-c">
                         <button class="command ui-corner-all" data-mini="true" value="beep rr">BEEP RR</button>
@@ -64,7 +58,7 @@
 
 
             <div class="ui-grid-b ui-responsive">
-                <div class="ui-block-a" style="width:78%">
+                <div class="ui-block-a" style="width:70%">
                     <input id="cmdline" type="text" data-mini="true" placeholder="Enter command here" />
                 </div>
                 <div class="ui-block-b" style="width:12%; font-color: ">
