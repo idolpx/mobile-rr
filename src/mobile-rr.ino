@@ -1430,7 +1430,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             {
                 v = v;
                 timer.detach();
-                timer.attach_ms ( v, onTimer );
+                timer.attach_ms ( 1000 * 60 * v, onTimer );
                 client->printf_P ( PSTR ( "[[b;yellow;]Auto Scan:] ENABLED" ) );
             }
 
