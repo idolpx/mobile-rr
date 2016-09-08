@@ -6,13 +6,6 @@ from distutils import dir_util
 from shutil import copyfileobj, move, rmtree
 import base64, gzip, os, sys, re
 
-env = DefaultEnvironment()
-
-# Set parameters from environment variables
-data = env['PROJECT_DIR'] + "/data/"
-www = env['PROJECT_DIR'] + "/www/"
-pattern = ARGUMENTS['CUSTOM_OPTION'].decode('base64')
-
 def gzFile (file):
     with open(file, 'rb') as f_in, gzip.open(file + '.gz', 'wb') as f_out:
         copyfileobj(f_in, f_out)
@@ -81,7 +74,7 @@ def minify_css(css):
     return css
 
 def embed_css(content):
-    pattern = re.compile("<link.*href=['\"](.*?)['\"].*/>", re.MULTILINE + re.IGNORECASE)
+    pattern = re.compile(ur'<link.*href=[\'"](.*?)[\'"].*/>')
 
     # Combine CSS
     matches = re.findall(pattern, content)
@@ -96,7 +89,7 @@ def embed_css(content):
         content = pattern.sub('', content)
 
         css_content = minify_css(css_content)
-        pattern = re.compile("</head>", re.MULTILINE + re.IGNORECASE)
+        pattern = re.compile(ur'</head>')
         content = pattern.sub(css_content + '\n</head>', content)
 
     return content
@@ -104,7 +97,7 @@ def embed_css(content):
 
 def combine_js(content):
     # Combine Javascript
-    pattern = re.compile("<script.*src=['\"](.*?)['\"].*?</script>", re.MULTILINE + re.IGNORECASE)
+    pattern = re.compile(ur'<script.*src=[\'"](.*?)[\'"].*?</script>')
     matches = re.findall(pattern, content)
     js_content = ''
     for match in matches:
@@ -124,8 +117,8 @@ def combine_js(content):
 
     # Update HTML Content
     if len(js_content.strip()):
-        pattern = re.compile("</head>", re.MULTILINE + re.IGNORECASE)
-        content = pattern.sub('<script src="script.js"></script>\n</head>', content)
+        pattern = re.compile(ur'</head>')
+        content = pattern.sub(ur'<script src="script.js"></script>\n</head>', content)
 
     return content
 
@@ -144,13 +137,19 @@ def embed_media(content):
 
     return content
 
+
+env = DefaultEnvironment()
+
+# Set parameters from environment variables
+data = env['PROJECT_DIR'] + "/data/"
+www = env['PROJECT_DIR'] + "/www/"
+
 # Only run when building & uploading SPIFFS image
 env.AddPostAction("uploadfs", after_upload)
 
 # Show parameters
 print data
 print www
-print pattern
 
 # Only run this script when building SPIFFS image
 if 'SPIFFS_START' in env:
@@ -159,7 +158,7 @@ if 'SPIFFS_START' in env:
 
     # embed Javascript, CSS into html files
     for file in files:
-        if re.search("\.htm", file):
+        if re.search(r'\.htm', file):
             print file
             content = read_file(file)
             content = embed_css( content )
@@ -172,6 +171,7 @@ if 'SPIFFS_START' in env:
             new_file.close()
 
     # gzip appropriate files
+    pattern = re.compile(ur'\.htm|\.css|\.js|\.svg')
     for file in files:
         if re.search(pattern, file):
             if os.path.exists(file):
