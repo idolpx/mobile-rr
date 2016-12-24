@@ -62,6 +62,7 @@ static void _u0_putc ( char c )
     U0F = c;
 }
 
+
 //
 //******************************************************************************************
 // Forward declaration of methods                                                          *
@@ -210,7 +211,7 @@ void dbg_printf ( const char *format, ... )
 //***************************************************************************
 //                    F O R M A T  B Y T E S                                *
 //***************************************************************************
-String formatBytes ( size_t bytes )
+String ICACHE_FLASH_ATTR formatBytes ( size_t bytes )
 {
     if ( bytes < 1024 )
     {
@@ -233,14 +234,14 @@ String formatBytes ( size_t bytes )
 //***************************************************************************
 //                    P I E Z O   B E E P                                   *
 //***************************************************************************
-void beep ( int delayms )
+void ICACHE_FLASH_ATTR beep ( int delayms )
 {
     digitalWrite ( PIEZO_PIN, HIGH );                                           // Turn PIEZO on
     delay ( delayms );                                                          // wait for a delayms ms
     digitalWrite ( PIEZO_PIN, LOW );                                            // Turn PIEZO off
 }
 
-void beepC ( int delayms )
+void ICACHE_FLASH_ATTR beepC ( int delayms )
 {
     for ( int c = 0; c < 448; c++ )
     {
@@ -261,7 +262,7 @@ void beepC ( int delayms )
     }
 }
 
-void beep_rr ()
+void ICACHE_FLASH_ATTR beep_rr ()
 {
     // We'll set up an array with the notes we want to play
     // change these values to make different songs!
@@ -314,7 +315,7 @@ void beep_rr ()
     digitalWrite ( LED_BUILTIN, HIGH );
 }
 
-int frequency ( char note )
+int ICACHE_FLASH_ATTR frequency ( char note )
 {
     // This function takes a note character (a-g), and returns the
     // corresponding frequency in Hz for the tone() function.
@@ -523,8 +524,8 @@ void setupDNSServer()
     {
         dbg_printf ( "DNS Override [%d]: %s -> " IPSTR, remoteIP[3], domain, IP2STR ( overrideIP ) );
     } );
-    dnsd.setErrorReplyCode ( DNSReplyCode::NoError );
-    dnsd.setTTL(0);
+    //dnsd.setErrorReplyCode ( DNSReplyCode::NoError );
+    //dnsd.setTTL(0);
     dnsd.start ( 53, "*", ip );
 }
 
@@ -654,7 +655,7 @@ void setupOTAServer()
     ArduinoOTA.begin();
 }
 
-int scanWiFi ()
+int ICACHE_FLASH_ATTR scanWiFi ()
 {
     int channels[11];
     std::fill_n ( channels, 11, 0 );
@@ -711,7 +712,7 @@ int scanWiFi ()
     return chan_selected;
 }
 
-void readFile( String file )
+void ICACHE_FLASH_ATTR readFile( String file )
 {
     File f = SPIFFS.open(file, "r");
     if (!f) {
@@ -728,7 +729,7 @@ void readFile( String file )
     }
 }
 
-String getSystemInformation()
+String ICACHE_FLASH_ATTR getSystemInformation()
 {
     String json;
     StaticJsonBuffer<512> jsonBuffer;
@@ -770,7 +771,7 @@ String getSystemInformation()
     return json;
 }
 
-String getApplicationSettings()
+String ICACHE_FLASH_ATTR getApplicationSettings()
 {
     String json;
     StaticJsonBuffer<512> jsonBuffer;
@@ -792,14 +793,14 @@ String getApplicationSettings()
     return json;
 }
 
-void onTimer ()
+void ICACHE_FLASH_ATTR onTimer ()
 {
     dbg_printf ( "Auto WiFi scan initiated!" );
     chan_selected = 0;
     state = statemachine::ap_change;
 }
 
-void eepromLoad()
+void ICACHE_FLASH_ATTR eepromLoad()
 {
     String json;
     StaticJsonBuffer<512> jsonBuffer;
@@ -850,7 +851,7 @@ void eepromLoad()
     }
 }
 
-void eepromSave()
+void ICACHE_FLASH_ATTR eepromSave()
 {
     StaticJsonBuffer<512> jsonBuffer;
     JsonObject &root = jsonBuffer.createObject();
@@ -885,7 +886,7 @@ void eepromSave()
     Serial.println();
 }
 
-void eepromInitialize()
+void ICACHE_FLASH_ATTR eepromInitialize()
 {
     dbg_printf ( "EEPROM - Initializing" );
 
@@ -897,7 +898,7 @@ void eepromInitialize()
     EEPROM.commit();
 }
 
-String getEEPROM()
+String ICACHE_FLASH_ATTR getEEPROM()
 {
     String json;
 
@@ -957,7 +958,7 @@ void loop ( void )
 //***************************************************************************
 // HTTPD onRequest                                                          *
 //***************************************************************************
-void onRequest ( AsyncWebServerRequest *request )
+void ICACHE_FLASH_ATTR onRequest ( AsyncWebServerRequest *request )
 {
     digitalWrite ( LED_BUILTIN, LOW );                                          // Turn the LED on by making the voltage LOW
 
@@ -1000,7 +1001,7 @@ void onRequest ( AsyncWebServerRequest *request )
 //***************************************************************************
 // Manage routing of websocket events                                       *
 //***************************************************************************
-void onEvent ( AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len )
+void ICACHE_FLASH_ATTR onEvent ( AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len )
 {
     if ( type == WS_EVT_CONNECT )
     {
@@ -1116,7 +1117,7 @@ void onEvent ( AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
 //***************************************************************************
 // translate and execute command                                            *
 //***************************************************************************
-void execCommand ( AsyncWebSocketClient *client, char *msg )
+void ICACHE_FLASH_ATTR execCommand ( AsyncWebSocketClient *client, char *msg )
 {
     bool CHANGED = false;
     uint16_t l = strlen ( msg );
@@ -1583,7 +1584,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
     dbg_printf ( "WS[%d]: %s", client->id(), msg );
 }
 
-void client_status ( AsyncWebSocketClient *client )
+void ICACHE_FLASH_ATTR client_status ( AsyncWebSocketClient *client )
 {
     struct station_info *station = wifi_softap_get_station_info();
     uint8_t client_count = wifi_softap_get_station_num();
@@ -1591,7 +1592,7 @@ void client_status ( AsyncWebSocketClient *client )
     client->printf_P ( PSTR ( "[[b;yellow;]Connected Client(s)]: %d" ),
                        client_count
                      );
-    int i = 1;
+    int i = 0;
 
     while ( station != NULL )
     {

@@ -6,15 +6,10 @@ from distutils import dir_util
 from shutil import copyfileobj, move, rmtree
 import base64, gzip, os, sys, re
 
-def gzFile (file):
+def gzFile(file):
     with open(file, 'rb') as f_in, gzip.open(file + '.gz', 'wb') as f_out:
         copyfileobj(f_in, f_out)
     os.remove(file)
-
-# remove 'data' folder after upload
-def after_upload(source, target, env):
-    print "after_upload"
-    rmtree(data)
 
 def read_file(file):
     with open(file, 'r') as myfile:
@@ -111,6 +106,7 @@ def combine_js(content):
             # Write out new line
             new_file.write( js_content )
         new_file.close()
+        gzFile( data + "script.js" )
 
         # Remove Javascript includes from Content
         content = pattern.sub('', content)
@@ -137,33 +133,33 @@ def embed_media(content):
 
     return content
 
+# Build httpdocs for web server
+def before_buildfs(source, target, env):
+    print "before_buildfs"
 
-env = DefaultEnvironment()
-
-# Set parameters from environment variables
-data = env['PROJECT_DIR'] + "/data/"
-www = env['PROJECT_DIR'] + "/www/"
-
-# Only run when building & uploading SPIFFS image
-env.AddPostAction("uploadfs", after_upload)
-
-# Show parameters
-print data
-print www
-
-# Only run this script when building SPIFFS image
-if 'SPIFFS_START' in env:
     # clone 'www' folder to 'data' folder
     files = dir_util.copy_tree(www, data, )
 
-    # embed Javascript, CSS into html files
+# SPIFFS Stats With Different Combinations of Processing
+# No Processing
+#   19 Files, 1.24 MB of 2.81 MB Used 1.58 MB Free
+# gzip
+#   19 Files, 812.81 KB of 2.81 MB Used 2.02 MB Free
+# embed_css gzip
+#   16 Files, 810.85 KB of 2.81 MB Used 2.02 MB Free
+# embed_css combine_js gzip
+#   12 Files, 1.04 MB of 2.81 MB Used 1.78 MB Free
+# embed_css combine_js embed_media gzip
+#   7 Files, 1.04 MB of 2.81 MB Used 1.77 MB Free
+
+    # embed Javascript, CSS & media into html files
     for file in files:
         if re.search(r'\.htm', file):
             print file
             content = read_file(file)
             content = embed_css( content )
             content = combine_js( content )
-            content = embed_media( content )
+#            content = embed_media( content )
 
             # Save New HTML File
             with open(file, 'w') as new_file:
@@ -171,9 +167,33 @@ if 'SPIFFS_START' in env:
             new_file.close()
 
     # gzip appropriate files
-    pattern = re.compile(ur'\.htm|\.css|\.js|\.svg')
+    pattern = re.compile(ur'\.htm|\.css|\.js|\.map|\.svg')
     for file in files:
         if re.search(pattern, file):
             if os.path.exists(file):
                 print file
                 gzFile( file )
+
+
+# remove 'data' folder after upload
+def after_uploadfs(source, target, env):
+    print "after_uploadfs"
+    rmtree(data)
+
+
+env = DefaultEnvironment()
+
+# Set parameters from environment variables
+data = env['PROJECT_DIR'] + "/data/"
+www = env['PROJECT_DIR'] + "/www/"
+
+# Show parameters
+print data
+print www
+
+# Only run when building & uploading SPIFFS image
+#env.AddPreAction("buildfs", before_buildfs)
+env.AddPostAction("uploadfs", after_uploadfs)
+
+if 'SPIFFS_START' in env:
+    before_buildfs("","buildfs",env)
