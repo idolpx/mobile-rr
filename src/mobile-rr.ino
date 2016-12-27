@@ -142,6 +142,7 @@ DNSServer       dnsd;                                                           
 MDNSResponder   mdns;
 
 AsyncWebServer  httpd ( 80 );                                                   // Instance of embedded webserver
+//AsyncWebServer  httpsd ( 443 );
 AsyncWebSocket  ws ( "/ws" );                                                   // access at ws://[esp ip]/ws
 _ws_client      ws_client[MAX_WS_CLIENT];                                       // State Machine for WebSocket Client;
 
@@ -190,7 +191,7 @@ String encryptionTypes ( int which )
 //***************************************************************************
 //                            D B G P R I N T                               *
 //***************************************************************************
-void dbg_printf ( const char *format, ... )
+void ICACHE_FLASH_ATTR dbg_printf ( const char *format, ... )
 {
     static char sbuf[1400];                                                     // For debug lines
     va_list varArgs;                                                            // For variable number of params
@@ -352,7 +353,7 @@ int ICACHE_FLASH_ATTR frequency ( char note )
 //***************************************************************************
 //                    S E T U P                                             *
 //***************************************************************************
-void setup ( void )
+void ICACHE_FLASH_ATTR setup ( void )
 {
     uint8_t     mac[6];
 
@@ -436,7 +437,7 @@ void setup ( void )
     dbg_printf ( "\nReady!\n--------------------" );
 }
 
-int setupAP ( int chan_selected )
+int ICACHE_FLASH_ATTR setupAP ( int chan_selected )
 {
     char no_pass[] = "\0";
 
@@ -457,7 +458,7 @@ int setupAP ( int chan_selected )
 }
 
 
-void setupEEPROM()
+void ICACHE_FLASH_ATTR setupEEPROM()
 {
     dbg_printf ( "EEPROM - Checking" );
     EEPROM.begin ( 512 );
@@ -465,7 +466,7 @@ void setupEEPROM()
     dbg_printf ( "" );
 }
 
-void setupSPIFFS()
+void ICACHE_FLASH_ATTR setupSPIFFS()
 {
     FSInfo      fs_info;                                                        // Info about SPIFFS
     Dir         dir;                                                            // Directory struct for SPIFFS
@@ -501,7 +502,7 @@ void setupSPIFFS()
                );
 }
 
-void setupDNSServer()
+void ICACHE_FLASH_ATTR setupDNSServer()
 {
     // Setup DNS Server
     // if DNS Server is started with "*" for domain name,
@@ -529,7 +530,7 @@ void setupDNSServer()
     dnsd.start ( 53, "*", ip );
 }
 
-void setupHTTPServer()
+void ICACHE_FLASH_ATTR setupHTTPServer()
 {
     // Web Server Document Setup
     dbg_printf ( "Starting HTTP Captive Portal" );
@@ -603,11 +604,33 @@ void setupHTTPServer()
     dbg_printf ( "Starting Websocket Console" );
     ws.onEvent ( onEvent );
     httpd.addHandler ( &ws );
-
     httpd.begin();
+
+/*
+    // Setup SSL
+    httpsd.onNotFound ( onRequest );
+    httpsd.onSslFileRequest([](void * arg, const char *filename, uint8_t **buf) -> int {
+        Serial.printf("SSL File: %s\n", filename);
+        File file = SPIFFS.open(filename, "r");
+        if(file){
+            size_t size = file.size();
+            uint8_t * nbuf = (uint8_t*)malloc(size);
+            if(nbuf){
+                size = file.read(nbuf, size);
+                file.close();
+                *buf = nbuf;
+                return size;
+            }
+            file.close();
+        }
+        *buf = 0;
+        return 0;
+    }, NULL);
+    httpsd.beginSecure("/server.cer", "/server.key", NULL);
+*/
 }
 
-void setupOTAServer()
+void ICACHE_FLASH_ATTR setupOTAServer()
 {
     dbg_printf ( "Starting OTA Update Server" );
 
@@ -685,6 +708,7 @@ int ICACHE_FLASH_ATTR scanWiFi ()
 
         channels[ chan_scan ]++;
     }
+    WiFi.scanDelete();
 
     // Find least used channel
     int lowest_count = 10000;
@@ -919,7 +943,7 @@ String ICACHE_FLASH_ATTR getEEPROM()
 //***************************************************************************
 // Main program loop.                                                       *
 //***************************************************************************
-void loop ( void )
+void ICACHE_FLASH_ATTR loop ( void )
 {
     dnsd.processNextRequest();
     ArduinoOTA.handle();  // Handle remote Wifi Updates
@@ -979,6 +1003,17 @@ void ICACHE_FLASH_ATTR onRequest ( AsyncWebServerRequest *request )
         response->addHeader("Pragma","no-cache");
         response->addHeader ("Location", "http://10.10.10.1/index.htm" );
         request->send(response);
+
+/*        AsyncWebServerResponse *response = request->beginResponse(
+            511,
+            "text/html",
+            "<html><head><meta http-equiv='refresh' content='0; url=http://10.10.10.1/index.htm'></head></html>"
+        );
+        //response->addHeader("Cache-Control","no-cache");
+        //response->addHeader("Pragma","no-cache");
+        //response->addHeader ("Location", "http://10.10.10.1/index.htm" );
+        request->send(response);
+*/
     }
     else
     {
