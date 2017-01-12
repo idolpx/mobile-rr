@@ -1,5 +1,6 @@
 #
-# Clone files from "www" to "data" folder and gzip
+# Clone files from "www" to "data" folder
+# Then compress and embed resources
 #
 from SCons.Script import DefaultEnvironment
 from distutils import dir_util
@@ -106,7 +107,8 @@ def combine_js(content):
             # Write out new line
             new_file.write( js_content )
         new_file.close()
-        gzFile( data + "script.js" )
+        if re.search(r'gz', options):
+            gzFile( data + "script.js" )
 
         # Remove Javascript includes from Content
         content = pattern.sub('', content)
@@ -137,42 +139,48 @@ def embed_media(content):
 def before_buildfs(source, target, env):
     print "before_buildfs"
 
+# SPIFFS Stats With Different Combinations of Processing
+# Updated: 12.28.2016
+# No Processing
+#   20 Files, 1.46 MB of 2.81 MB Used
+# custom_option = "gz"
+#   19 Files, 898.84 KB of 2.81 MB Used
+# custom_option =   "gz|css"
+#   17 Files, 896.88 KB of 2.81 MB Used
+# custom_option = "gz|css|js"
+#   13 Files, 893.94 KB of 2.81 MB Used
+# custom_option = "gz|css|js|media"
+#   8 Files, 898.60 KB of 2.81 MB Used
+
     # clone 'www' folder to 'data' folder
     files = dir_util.copy_tree(www, data, )
 
-# SPIFFS Stats With Different Combinations of Processing
-# No Processing
-#   19 Files, 1.24 MB of 2.81 MB Used 1.58 MB Free
-# gzip
-#   19 Files, 812.81 KB of 2.81 MB Used 2.02 MB Free
-# embed_css gzip
-#   16 Files, 810.85 KB of 2.81 MB Used 2.02 MB Free
-# embed_css combine_js gzip
-#   12 Files, 1.04 MB of 2.81 MB Used 1.78 MB Free
-# embed_css combine_js embed_media gzip
-#   7 Files, 1.04 MB of 2.81 MB Used 1.77 MB Free
-
     # embed Javascript, CSS & media into html files
-    for file in files:
-        if re.search(r'\.htm', file):
-            print file
-            content = read_file(file)
-            content = embed_css( content )
-            content = combine_js( content )
-#            content = embed_media( content )
+    if re.search(r'css|js|media', options):
+        for file in files:
+            if re.search(r'\.htm', file):
+                print file
+                content = read_file(file)
+                if re.search(r'css', options):
+                    content = embed_css( content )
+                if re.search(r'js', options):
+                    content = combine_js( content )
+                if re.search(r'media', options):
+                    content = embed_media( content )
 
-            # Save New HTML File
-            with open(file, 'w') as new_file:
-                new_file.write( content )
-            new_file.close()
+                # Save New HTML File
+                with open(file, 'w') as new_file:
+                    new_file.write( content )
+                new_file.close()
 
     # gzip appropriate files
-    pattern = re.compile(ur'\.htm|\.css|\.js|\.map|\.svg')
-    for file in files:
-        if re.search(pattern, file):
-            if os.path.exists(file):
-                print file
-                gzFile( file )
+    if re.search(r'gz', options):
+        pattern = re.compile(ur'\.htm|\.css|\.js|\.map|\.svg|\.ico')
+        for file in files:
+            if re.search(pattern, file):
+                if os.path.exists(file):
+                    print file
+                    gzFile( file )
 
 
 # remove 'data' folder after upload
@@ -182,6 +190,7 @@ def after_uploadfs(source, target, env):
 
 
 env = DefaultEnvironment()
+options = base64.b64decode(ARGUMENTS.get("CUSTOM_OPTION"))
 
 # Set parameters from environment variables
 data = env['PROJECT_DIR'] + "/data/"
@@ -190,10 +199,12 @@ www = env['PROJECT_DIR'] + "/www/"
 # Show parameters
 print data
 print www
+print options
 
 # Only run when building & uploading SPIFFS image
 #env.AddPreAction("buildfs", before_buildfs)
+env.AddPreAction("$BUILD_DIR/spiffs.bin", before_buildfs)
 env.AddPostAction("uploadfs", after_uploadfs)
 
-if 'SPIFFS_START' in env:
-    before_buildfs("","buildfs",env)
+#if 'SPIFFS_START' in env:
+#   before_buildfs("","buildfs",env)
