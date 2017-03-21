@@ -474,7 +474,7 @@ int setupAP ( int chan_selected )
     //dbg_printf("WiFi \n\tSSID: %s\n\tPassword: %s\n\t Channel: %d", config.ssid, config.password, config.channel);
     //dbg_printf ( "Channel %d Selected!", chan_selected );
 
-    if ( config.channel != chan_selected ) // || config.ssid != ssid) )
+    if ( config.channel != chan_selected || !strcmp ( (char*)config.ssid, ssid ) )
     {
         dbg_printf ( "Changing WiFi channel from %d to %d.", config.channel, chan_selected );
         WiFi.softAPdisconnect ( true );
