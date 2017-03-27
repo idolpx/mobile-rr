@@ -72,7 +72,7 @@ int setupAP ( int chan_selected );
 //***************************************************************************
 // Global data section.                                                     *
 //***************************************************************************
-float version               = 1.42;
+float version               = 1.43;
 const char *appid           = "mobile-rr";
 char ssid[]                 = "FREE Highspeed WiFi";
 int channel                 = 0;
@@ -376,7 +376,7 @@ void setup ( void )
     system_set_os_print ( 1 );
 //  system_update_cpu_freq ( 160 );                                             // Set CPU to 80/160 MHz
 
-    Serial.begin ( 115200 );                                                // For debug
+    Serial.begin ( 921600 );                                                // For debug
     Serial.println();
 
     pinMode ( LED_BUILTIN, OUTPUT );                                        // initialize onboard LED as output
@@ -398,7 +398,9 @@ void setup ( void )
     // Setup Access Point
     wifi_set_phy_mode ( PHY_MODE_11B );
     WiFi.mode ( WIFI_AP );
+    WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
     chan_selected = setupAP ( channel );
+    WiFi.softAP ( ssid, NULL, chan_selected );
     WiFi.softAPmacAddress ( mac );
 
     // Show Soft AP Info
@@ -471,12 +473,19 @@ int setupAP ( int chan_selected )
         chan_selected = scanWiFi();
     }
 
-    //dbg_printf("WiFi \n\tSSID: %s\n\tPassword: %s\n\t Channel: %d", config.ssid, config.password, config.channel);
+    //dbg_printf ( "WiFi \n\tSSID: %s\n\tPassword: %s\n\t Channel: %d", config.ssid, config.password, config.channel );
     //dbg_printf ( "Channel %d Selected!", chan_selected );
+    //dbg_printf ( "SSID: %s", ssid );
+    //dbg_printf ( "Compare: %d", strcmp ( (char*)config.ssid, ssid ) );
 
-    if ( config.channel != chan_selected ) // || config.ssid != ssid) )
+    if ( config.channel != chan_selected || strcmp ( (char*)config.ssid, ssid ) )
     {
-        dbg_printf ( "Changing WiFi channel from %d to %d.", config.channel, chan_selected );
+        if ( config.channel != chan_selected )
+          dbg_printf ( "Changing WiFi channel from %d to %d.", config.channel, chan_selected );
+
+        if ( strcmp ( (char*)config.ssid, ssid ) )
+          dbg_printf ( "Changing SSID from '%s' to '%s'.", (char*)config.ssid, ssid );
+
         WiFi.softAPdisconnect ( true );
         WiFi.mode ( WIFI_AP );
         wifi_set_phy_mode ( PHY_MODE_11B );
@@ -879,11 +888,11 @@ void eepromLoad()
     else
     {
         // Load Settings from JSON
-        sprintf ( ssid, "%s", root["ssid"].asString() );
+        sprintf ( ssid, "%s", root["ssid"].as<char*>() );
         channel = root["channel"];
         interval = root["interval"];
-        sprintf ( username, "%s", root["username"].asString() );
-        sprintf ( password, "%s", root["password"].asString() );
+        sprintf ( username, "%s", root["username"].as<char*>() );
+        sprintf ( password, "%s", root["password"].as<char*>() );
 
         DEBUG = root["debug"];
         SILENT = root["silent"];
