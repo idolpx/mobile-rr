@@ -209,6 +209,21 @@ void dbg_printf ( const char *format, ... )
     }
 }
 
+void printfAll ( const char *format, ... )
+{
+    if ( ws.count() )
+    {
+        static char sbuf[1400];
+        va_list varArgs;                                                        // For variable number of params
+
+        va_start ( varArgs, format );                                           // Prepare parameters
+        vsnprintf ( sbuf, sizeof ( sbuf ), format, varArgs );                   // Format the message
+        va_end ( varArgs );                                                     // End of using parameters
+
+        ws.textAll ( sbuf );
+    }
+}
+
 /** IP to String? */
 String ipToString ( IPAddress ip )
 {
@@ -601,15 +616,15 @@ void setupHTTPServer()
     {
         rrsession++;
         rrtotal++;
-        IPAddress remoteIP = request->client()->remoteIP();
-        ws.printfAll ( "[[b;yellow;]Rick Roll Sent!] (%d): [%s] %s",
+        String remoteIP = ipToString ( request->client()->remoteIP() );
+        printfAll ( "[[b;yellow;]Rick Roll Sent!] (%d): [%s] %s" ,
                        rrsession,
-                       ipToString ( remoteIP ).c_str(),
+                       remoteIP.c_str(),
                        request->header ( "User-Agent" ).c_str()
                      );
         Serial.printf ( "Rick Roll Sent! (%d): [%s] %s\n",
                         rrsession,
-                        ipToString ( remoteIP ).c_str(),
+                        remoteIP.c_str(),
                         request->header ( "User-Agent" ).c_str()
                       );
         request->send ( 200, "text/html", String ( rrsession ) );
@@ -621,7 +636,7 @@ void setupHTTPServer()
             state = statemachine::beep_c;
         }
 
-        //List all collected headers
+/*        //List all collected headers
         int headers = request->headers();
         int i;
 
@@ -630,7 +645,7 @@ void setupHTTPServer()
             AsyncWebHeader *h = request->getHeader ( i );
             Serial.printf ( "HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str() );
         }
-
+*/
         // Disconnect that station
         //wifi_softap_dhcps_client_leave(NULL, remoteIP, true);
     } );
