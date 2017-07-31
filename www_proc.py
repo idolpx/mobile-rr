@@ -206,5 +206,5 @@ print options
 env.AddPreAction("$BUILD_DIR/spiffs.bin", before_buildfs)
 env.AddPostAction("uploadfs", after_uploadfs)
 
-if 'SPIFFS_START' in env:
-   before_buildfs("","buildfs",env)
+#if 'SPIFFS_START' in env:
+#   before_buildfs("","buildfs",env)
