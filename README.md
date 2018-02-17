@@ -7,7 +7,7 @@ The purpose of this project was to help me get familiar with programming for the
 [![ESP8266 Mobile-RR](https://i.ytimg.com/vi/ZpcRZoXQAzM/hqdefault.jpg)](https://www.youtube.com/watch?v=ZpcRZoXQAzM)
 
 * User connects to the device broadcasting an SSID of "FREE Highspeed WiFi" (this is configurable of course)
-* The captive portal helper on their phone/table/computer kicks in and presents them with a page showing "Terms of Service" and a button labeled "I Accept"
+* The captive portal helper on their phone/tablet/computer kicks in and presents them with a page showing "Terms of Service" and a button labeled "I Accept"
 * When they click the button a full screen animated GIF of Rick Astley dancing appears and an audio clip of "Never Gonna Give You Up" starts playing on loop along with a message in the bottom right letting them know they got rock rolled (Incase they don't understand what's going on)
 
 On bootup, the buzzer plays a little bit of "Never Gonna Give You Up".
