@@ -565,26 +565,31 @@ void setupDNSServer()
     // Setup DNS Server
     // if DNS Server is started with "*" for domain name,
     // it will reply with provided IP to all DNS request
+	// Some overides are added to show on android showing that you need to login notification.
+	// newer android versions doesnt use connectivitycheck.android.com but uses connectivitycheck.gstatic.com instead.
     dbg_printf ( "Starting DNS Server" );
     dnsd.onQuery ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & resolvedIP )
     {
         dbg_printf ( "DNS Query [%d]: %s -> %s", remoteIP[3], domain, ipToString ( resolvedIP ).c_str() );
+		connectivitycheck.android.com -> 74.125.21.113
+            if ( strstr(domain, "connectivitycheck.gstatic.com") )
+				dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
 
-        /*        // connectivitycheck.android.com -> 74.125.21.113
-                if ( strstr(domain, "connectivitycheck.android.com") )
-                    dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
+        connectivitycheck.android.com -> 74.125.21.113
+            if ( strstr(domain, "connectivitycheck.android.com") )
+                dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
 
-                // dns.msftncsi.com -> 131.107.255.255
-                if ( strstr(domain, "msftncsi.com") )
-                    dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
-         */
+        dns.msftncsi.com -> 131.107.255.255
+            if ( strstr(domain, "msftncsi.com") )
+                dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
+        
     } );
     dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
     {
         dbg_printf ( "DNS Override [%d]: %s -> %s", remoteIP[3], domain, ipToString ( overrideIP ).c_str() );
     } );
     //dnsd.setErrorReplyCode ( DNSReplyCode::NoError );
-    //dnsd.setTTL(0);
+    dnsd.setTTL(0);
     dnsd.start ( 53, "*", ip );
 }
 
@@ -1113,10 +1118,10 @@ void onRequest ( AsyncWebServerRequest *request )
     if ( ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) ) ||  ( request->host() != "10.10.10.1" ) )
     {
         AsyncWebServerResponse *response = request->beginResponse ( 302, "text/plain", "" );
-//        response->addHeader ( "Cache-Control", "no-cache, no-store, must-revalidate" );
-//        response->addHeader ( "Pragma", "no-cache" );
-//        response->addHeader ("Expires", "-1");
-//        response->setContentLength (CONTENT_LENGTH_UNKNOWN);
+		response->addHeader ( "Cache-Control", "no-cache, no-store, must-revalidate" );
+		response->addHeader ( "Pragma", "no-cache" );
+		response->addHeader ("Expires", "-1");
+		//response->setContentLength (CONTENT_LENGTH_UNKNOWN);
         response->addHeader ( "Location", "http://10.10.10.1/index.htm" );
         request->send ( response );
 
