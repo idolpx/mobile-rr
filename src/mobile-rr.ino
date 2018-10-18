@@ -571,17 +571,14 @@ void setupDNSServer()
     dnsd.onQuery ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & resolvedIP )
     {
         dbg_printf ( "DNS Query [%d]: %s -> %s", remoteIP[3], domain, ipToString ( resolvedIP ).c_str() );
-		connectivitycheck.android.com -> 74.125.21.113
-            if ( strstr(domain, "connectivitycheck.gstatic.com") )
-				dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
 
-        connectivitycheck.android.com -> 74.125.21.113
-            if ( strstr(domain, "connectivitycheck.android.com") )
-                dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
+        // connectivitycheck.android.com -> 74.125.21.113
+        if ( strstr( "clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com", domain ) )
+            dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
 
-        dns.msftncsi.com -> 131.107.255.255
-            if ( strstr(domain, "msftncsi.com") )
-                dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
+        // dns.msftncsi.com -> 131.107.255.255
+        if ( strstr(domain, "msftncsi.com") )
+            dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
         
     } );
     dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
