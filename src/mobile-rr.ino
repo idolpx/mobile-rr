@@ -25,6 +25,8 @@
 //          http://blog.squix.org/2015/08/esp8266arduino-playing-around-with.html
 // WiFiManager - https://github.com/tzapu/WiFiManager
 // ESP-GDBStub - https://github.com/esp8266/Arduino/tree/master/libraries/GDBStub
+// Offline Debugging - https://blog.squix.org/2016/04/esp8266-offline-debugging-with.html
+// Stack Trace Decoder - https://github.com/me-no-dev/EspExceptionDecoder
 
 #include <stdio.h>
 #include <string.h>
@@ -570,21 +572,21 @@ void setupDNSServer()
     {
         dbg_printf ( "DNS Query [%d]: %s -> %s", remoteIP[3], domain, ipToString ( resolvedIP ).c_str() );
 
-        /*        // connectivitycheck.android.com -> 74.125.21.113
-                if ( strstr(domain, "connectivitycheck.android.com") )
-                    dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
+        // connectivitycheck.android.com -> 74.125.21.113
+        if ( strstr( "clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com", domain ) )
+            dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
 
-                // dns.msftncsi.com -> 131.107.255.255
-                if ( strstr(domain, "msftncsi.com") )
-                    dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
-         */
+        // dns.msftncsi.com -> 131.107.255.255
+        if ( strstr(domain, "msftncsi.com") )
+            dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
+
     } );
     dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
     {
         dbg_printf ( "DNS Override [%d]: %s -> %s", remoteIP[3], domain, ipToString ( overrideIP ).c_str() );
     } );
     //dnsd.setErrorReplyCode ( DNSReplyCode::NoError );
-    //dnsd.setTTL(0);
+    dnsd.setTTL(0);
     dnsd.start ( 53, "*", ip );
 }
 
@@ -742,15 +744,19 @@ int scanWiFi ()
             bool hidden_scan;
             WiFi.getNetworkInfo ( network, ssid_scan, sec_scan, rssi_scan, BSSID_scan, chan_scan, hidden_scan );
 
-            dbg_printf ( "%-6d%-9d%-12s%02X:%02X:%02X:%02X:%02X:%02X  %s",
-                         rssi_scan,
-                         chan_scan,
-                         encryptionTypes ( sec_scan ).c_str(),
-                         MAC2STR ( BSSID_scan ),
-                         ssid_scan.c_str()
-                       );
+            // Only count channels with an rssi greater than -80
+            if ( rssi_scan > -80 )
+            {
+                dbg_printf ( "%-6d%-9d%-12s%02X:%02X:%02X:%02X:%02X:%02X  %s",
+                             rssi_scan,
+                             chan_scan,
+                             encryptionTypes ( sec_scan ).c_str(),
+                             MAC2STR ( BSSID_scan ),
+                             ssid_scan.c_str()
+                           );
 
-            channels[ chan_scan ]++;
+                channels[ chan_scan ]++;
+            }
         }
 
         WiFi.scanDelete();
