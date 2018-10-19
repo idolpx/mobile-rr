@@ -7,7 +7,7 @@ The purpose of this project was to help me get familiar with programming for the
 [![ESP8266 Mobile-RR](https://i.ytimg.com/vi/ZpcRZoXQAzM/hqdefault.jpg)](https://www.youtube.com/watch?v=ZpcRZoXQAzM)
 
 * User connects to the device broadcasting an SSID of "FREE Highspeed WiFi" (this is configurable of course)
-* The captive portal helper on their phone/table/computer kicks in and presents them with a page showing "Terms of Service" and a button labeled "I Accept"
+* The captive portal helper on their phone/tablet/computer kicks in and presents them with a page showing "Terms of Service" and a button labeled "I Accept"
 * When they click the button a full screen animated GIF of Rick Astley dancing appears and an audio clip of "Never Gonna Give You Up" starts playing on loop along with a message in the bottom right letting them know they got rock rolled (Incase they don't understand what's going on)
 
 On bootup, the buzzer plays a little bit of "Never Gonna Give You Up".
@@ -33,18 +33,18 @@ I use PlatformIO to build this.  http://platformio.org/
 * Once updated and restarted, clone the "mobile-rr" project to a folder and open the project in PlatformIO
 * Next build the firmware by clicking the checkmark icon on the toolbar
 
-![Build Firmware](https://s20.postimg.org/e9mna84pp/build_firmware.png)
+![Build Firmware](doc/1.buildfirmware.png)
 
 ## Upload Firmware and SPIFFS data
 After your firmware build is successful you can upload it by clicking the arrow under the checkmark in the PlatformIO toolbar.
 
-![Upload Firmware](https://s20.postimg.org/ue4gppiot/upload_firmware.png)
+![Upload Firmware](doc/2.uploadfirmware.png)
 
 You can add/edit the files in the "www" folder to your liking. (Files in the "www" folder will be cloned and gzipped to the "data" folder when building.) Then follow the instructions below to build and upload the SPIFFS file system image to your ESP8266.
 
-![Upload SPIFFS 1](https://s20.postimg.org/p1ymo5v4t/build_spiffs.png)
+![Upload SPIFFS 1](doc/3.uploadspiffs.png)
 
-![Upload SPIFFS 2](https://s20.postimg.org/vrw3l0hy5/image.png)
+![Upload SPIFFS 2](doc/4.uploadspiffs.png)
 
 **Note: Anytime you make changes to the firmware or the data you can rebuild and upload either without the need to install the other again. They reside in different areas of the flash memory.**
 
