@@ -139,12 +139,12 @@ statemachine state = statemachine::none;
 int state_int;
 String state_string;
 
-IPAddress ip ( 10, 10, 10, 1 );                                                 // Private network for httpd
+IPAddress ip ( 192, 168, 4, 1 );                                                // Private network for httpd
+IPAddress mask ( 255, 255, 255, 0 );
 DNSServer dnsd;                                                                 // Create the DNS object
 MDNSResponder mdns;
 
 AsyncWebServer httpd ( 80 );                                                    // Instance of embedded webserver
-//AsyncWebServer  httpsd ( 443 );
 AsyncWebSocket ws ( "/ws" );                                                    // access at ws://[esp ip]/ws
 _ws_client ws_client[MAX_WS_CLIENT];                                            // State Machine for WebSocket Client;
 
@@ -154,6 +154,7 @@ int rrsession;                                                                  
 int rrtotal;                                                                    // Rick Roll Count Total
 char str_vcc[8];
 int chan_selected;
+uint16_t file_count;
 
 //***************************************************************************
 // End of global data section.                                              *
@@ -415,7 +416,7 @@ void setup ( void )
     // Setup Access Point
     wifi_set_phy_mode ( PHY_MODE_11B );
     WiFi.mode ( WIFI_AP );
-    WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
+    WiFi.softAPConfig ( ip, ip, mask );
     chan_selected = setupAP ( channel );
     WiFi.softAP ( ssid, NULL, chan_selected );
     WiFi.softAPmacAddress ( mac );
@@ -536,7 +537,7 @@ void setupSPIFFS()
     SPIFFS.begin();                                                         // Enable file system
 
     // Show some info about the SPIFFS
-    uint16_t cnt = 0;
+    file_count = 0;
     SPIFFS.info ( fs_info );
     dbg_printf ( "SPIFFS Files\nName                           -      Size" );
     dir = SPIFFS.openDir ( "/" );                                           // Show files in FS
@@ -549,11 +550,11 @@ void setupSPIFFS()
                      filename.c_str(),
                      formatBytes ( f.size() ).c_str()
                    );
-        cnt++;
+        file_count++;
     }
 
     dbg_printf ( "%d Files, %s of %s Used",
-                 cnt,
+                 file_count,
                  formatBytes ( fs_info.usedBytes ).c_str(),
                  formatBytes ( fs_info.totalBytes ).c_str()
                );
@@ -572,13 +573,16 @@ void setupDNSServer()
     {
         dbg_printf ( "DNS Query [%d]: %s -> %s", remoteIP[3], domain, ipToString ( resolvedIP ).c_str() );
 
-        // connectivitycheck.android.com -> 74.125.21.113
-        if ( strstr( "clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com", domain ) )
-            dnsd.overrideIP =  IPAddress(74, 125, 21, 113);
+        // connectivitycheck.android.com -> 74.125.21.113, 172.217.21.67
+        //if ( strstr( "clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|clients.l.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com|android.clients.google.com|play.googleapis.com", domain ) )
+        //    dnsd.overrideIP =  IPAddress(172, 217, 21, 67);
 
         // dns.msftncsi.com -> 131.107.255.255
-        if ( strstr(domain, "msftncsi.com") )
-            dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
+        //if ( strstr(domain, "msftncsi.com") )
+        //    dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
+
+        //if ( strstr( "msftncsi.com|clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|clients.l.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com|android.clients.google.com|play.googleapis.com", domain ) )
+        //    dnsd.overrideIP =  IPAddress(ip[0], ip[1], ip[2], ip[3]+10);
 
     } );
     dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
@@ -595,17 +599,13 @@ void setupHTTPServer()
     // Web Server Document Setup
     dbg_printf ( "Starting HTTP Captive Portal" );
 
-    // Handle requests
-    httpd.on ( "/generate_204", onRequest );  //Android captive portal. Maybe not needed. Might be handled by notFound handler.
-    httpd.on ( "/fwlink", onRequest );  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
+    // Handle HTTP requests
+    //httpd.on ( "/generate_204", onRequest );  //Android captive portal. Maybe not needed. Might be handled by notFound handler.
+    //httpd.on ( "/fwlink", onRequest );  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
     httpd.onNotFound ( onRequest );
 
     // HTTP basic authentication
     httpd.on ( "/console", HTTP_GET, [] ( AsyncWebServerRequest * request )
-    {
-        request->redirect ( "http://10.10.10.1/console.htm" );
-    } );
-    httpd.on ( "/console.htm", HTTP_GET, [] ( AsyncWebServerRequest * request )
     {
         if ( strlen ( username ) > 0 && strlen ( password ) > 0 )
             if ( !request->authenticate ( username, password ) )
@@ -666,6 +666,7 @@ void setupHTTPServer()
         request->send ( response );
     } );
 
+
     // attach AsyncWebSocket
     dbg_printf ( "Starting Websocket Console" );
     ws.onEvent ( onEvent );
@@ -689,10 +690,10 @@ void setupOTAServer()
     // OTA callbacks
     ArduinoOTA.onStart ( []()
     {
-        SPIFFS.end();                                                   // Clean SPIFFS
+        SPIFFS.end();                                                           // Clean SPIFFS
 
-        ws.enable ( false );                                            // Disable client connections
-        dbg_printf ( "OTA Update Started" );                            // Let connected clients know what's going on
+        ws.enable ( false );                                                    // Disable client connections
+        dbg_printf ( "OTA Update Started" );                                    // Let connected clients know what's going on
     } );
     ArduinoOTA.onEnd ( []()
     {
@@ -700,7 +701,7 @@ void setupOTAServer()
 
         if ( ws.count() )
         {
-            ws.closeAll();                                          // Close connected clients
+            ws.closeAll();                                                      // Close connected clients
             delay ( 1000 );
         }
     } );
@@ -1116,26 +1117,23 @@ void onRequest ( AsyncWebServerRequest *request )
 
     String path = request->url();
 
-    if ( ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) ) ||  ( request->host() != "10.10.10.1" ) )
+    if ( request->host() != "mobile-rr.local" && request->host() != WiFi.softAPIP().toString() ) {
+        AsyncWebServerResponse *response = request->beginResponse( 307 );
+        response->addHeader ( "X-Frame-Options", "deny" );
+        response->addHeader ( "Cache-Control", "no-cache" );
+        response->addHeader ( "Pragma", "no-cache" );
+        response->addHeader ( "Location", "http://mobile-rr.local/index.htm" );
+        request->send ( response );
+    }
+    else if ( !file_count )
+    {
+        request->send_P (200, "text/plain", "SPIFFS Missing! (Upload File System Image)" );
+    }
+    else if ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) )
     {
         AsyncWebServerResponse *response = request->beginResponse ( 302, "text/plain", "" );
-//        response->addHeader ( "Cache-Control", "no-cache, no-store, must-revalidate" );
-//        response->addHeader ( "Pragma", "no-cache" );
-//        response->addHeader ("Expires", "-1");
-//        response->setContentLength (CONTENT_LENGTH_UNKNOWN);
-        response->addHeader ( "Location", "http://10.10.10.1/index.htm" );
+        response->addHeader ( "Location", "http://mobile-rr.local/index.htm" );
         request->send ( response );
-
-        /*        AsyncWebServerResponse *response = request->beginResponse(
-                    511,
-                    "text/html",
-                    "<html><head><meta http-equiv='refresh' content='0; url=http://10.10.10.1/index.htm'></head></html>"
-                );
-                //response->addHeader("Cache-Control","no-cache");
-                //response->addHeader("Pragma","no-cache");
-                //response->addHeader ("Location", "http://10.10.10.1/index.htm" );
-                request->send(response);
-         */
     }
     else
     {
@@ -1759,7 +1757,7 @@ void client_status ( AsyncWebSocketClient *client )
 {
     struct station_info *station = wifi_softap_get_station_info();
     uint8_t client_count = wifi_softap_get_station_num();
-    struct ip_addr *ip;
+    struct ip4_addr *ip;
     client->printf_P ( PSTR ( "[[b;yellow;]Connected Client(s)]: %d" ),
                        client_count
                      );
