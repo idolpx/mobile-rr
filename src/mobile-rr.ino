@@ -507,7 +507,7 @@ int setupAP ( int chan_selected )
         WiFi.softAPdisconnect ( true );
         WiFi.mode ( WIFI_AP );
         wifi_set_phy_mode ( PHY_MODE_11B );
-        WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
+        WiFi.softAPConfig ( ip, ip, mask );
         WiFi.softAP ( ssid, NULL, chan_selected );
     }
     else
