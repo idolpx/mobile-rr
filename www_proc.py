@@ -2,10 +2,14 @@
 # Clone files from "www" to "data" folder
 # Then compress and embed resources
 #
-from SCons.Script import DefaultEnvironment
 from distutils import dir_util
 from shutil import copyfileobj, move, rmtree
 import base64, gzip, os, sys, re
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 def gzFile(file):
     with open(file, 'rb') as f_in, gzip.open(file + '.gz', 'wb') as f_out:
@@ -188,9 +192,12 @@ def after_uploadfs(source, target, env):
     print "after_uploadfs"
     rmtree(data)
 
+Import("env")
+config = configparser.ConfigParser()
+config.read("platformio.ini")
 
-env = DefaultEnvironment()
-options = base64.b64decode(ARGUMENTS.get("CUSTOM_OPTION"))
+options = config.get("env:d1_mini","custom_option")
+print config.sections()
 
 # Set parameters from environment variables
 data = env['PROJECT_DIR'] + "/data/"
