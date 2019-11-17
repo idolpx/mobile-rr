@@ -139,12 +139,12 @@ statemachine state = statemachine::none;
 int state_int;
 String state_string;
 
-IPAddress ip ( 192, 168, 4, 1 );                                                // Private network for httpd
-IPAddress mask ( 255, 255, 255, 0 );
+IPAddress ip ( 10, 10, 10, 1 );                                                 // Private network for httpd
 DNSServer dnsd;                                                                 // Create the DNS object
 MDNSResponder mdns;
 
 AsyncWebServer httpd ( 80 );                                                    // Instance of embedded webserver
+//AsyncWebServer  httpsd ( 443 );
 AsyncWebSocket ws ( "/ws" );                                                    // access at ws://[esp ip]/ws
 _ws_client ws_client[MAX_WS_CLIENT];                                            // State Machine for WebSocket Client;
 
@@ -154,7 +154,6 @@ int rrsession;                                                                  
 int rrtotal;                                                                    // Rick Roll Count Total
 char str_vcc[8];
 int chan_selected;
-uint16_t file_count;
 
 //***************************************************************************
 // End of global data section.                                              *
@@ -416,7 +415,7 @@ void setup ( void )
     // Setup Access Point
     wifi_set_phy_mode ( PHY_MODE_11B );
     WiFi.mode ( WIFI_AP );
-    WiFi.softAPConfig ( ip, ip, mask );
+    WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 0, 0, 0 ) );
     chan_selected = setupAP ( channel );
     WiFi.softAP ( ssid, NULL, chan_selected );
     WiFi.softAPmacAddress ( mac );
@@ -507,7 +506,7 @@ int setupAP ( int chan_selected )
         WiFi.softAPdisconnect ( true );
         WiFi.mode ( WIFI_AP );
         wifi_set_phy_mode ( PHY_MODE_11B );
-        WiFi.softAPConfig ( ip, ip, mask );
+        WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
         WiFi.softAP ( ssid, NULL, chan_selected );
     }
     else
@@ -537,7 +536,7 @@ void setupSPIFFS()
     SPIFFS.begin();                                                         // Enable file system
 
     // Show some info about the SPIFFS
-    file_count = 0;
+    uint16_t cnt = 0;
     SPIFFS.info ( fs_info );
     dbg_printf ( "SPIFFS Files\nName                           -      Size" );
     dir = SPIFFS.openDir ( "/" );                                           // Show files in FS
@@ -550,11 +549,11 @@ void setupSPIFFS()
                      filename.c_str(),
                      formatBytes ( f.size() ).c_str()
                    );
-        file_count++;
+        cnt++;
     }
 
     dbg_printf ( "%d Files, %s of %s Used",
-                 file_count,
+                 cnt,
                  formatBytes ( fs_info.usedBytes ).c_str(),
                  formatBytes ( fs_info.totalBytes ).c_str()
                );
@@ -573,16 +572,13 @@ void setupDNSServer()
     {
         dbg_printf ( "DNS Query [%d]: %s -> %s", remoteIP[3], domain, ipToString ( resolvedIP ).c_str() );
 
-        // connectivitycheck.android.com -> 74.125.21.113, 172.217.21.67
+        // connectivitycheck.android.com -> 74.125.21.113
         //if ( strstr( "clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|clients.l.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com|android.clients.google.com|play.googleapis.com", domain ) )
         //    dnsd.overrideIP =  IPAddress(172, 217, 21, 67);
 
         // dns.msftncsi.com -> 131.107.255.255
         //if ( strstr(domain, "msftncsi.com") )
         //    dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
-
-        //if ( strstr( "msftncsi.com|clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|clients.l.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com|android.clients.google.com|play.googleapis.com", domain ) )
-        //    dnsd.overrideIP =  IPAddress(ip[0], ip[1], ip[2], ip[3]+10);
 
     } );
     dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
@@ -599,9 +595,9 @@ void setupHTTPServer()
     // Web Server Document Setup
     dbg_printf ( "Starting HTTP Captive Portal" );
 
-    // Handle HTTP requests
-    //httpd.on ( "/generate_204", onRequest );  //Android captive portal. Maybe not needed. Might be handled by notFound handler.
-    //httpd.on ( "/fwlink", onRequest );  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
+    // Handle requests
+    httpd.on ( "/generate_204", onRequest );  //Android captive portal. Maybe not needed. Might be handled by notFound handler.
+    httpd.on ( "/fwlink", onRequest );  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
     httpd.onNotFound ( onRequest );
 
     // HTTP basic authentication
@@ -666,7 +662,6 @@ void setupHTTPServer()
         request->send ( response );
     } );
 
-
     // attach AsyncWebSocket
     dbg_printf ( "Starting Websocket Console" );
     ws.onEvent ( onEvent );
@@ -690,10 +685,10 @@ void setupOTAServer()
     // OTA callbacks
     ArduinoOTA.onStart ( []()
     {
-        SPIFFS.end();                                                           // Clean SPIFFS
+        SPIFFS.end();                                                   // Clean SPIFFS
 
-        ws.enable ( false );                                                    // Disable client connections
-        dbg_printf ( "OTA Update Started" );                                    // Let connected clients know what's going on
+        ws.enable ( false );                                            // Disable client connections
+        dbg_printf ( "OTA Update Started" );                            // Let connected clients know what's going on
     } );
     ArduinoOTA.onEnd ( []()
     {
@@ -701,7 +696,7 @@ void setupOTAServer()
 
         if ( ws.count() )
         {
-            ws.closeAll();                                                      // Close connected clients
+            ws.closeAll();                                          // Close connected clients
             delay ( 1000 );
         }
     } );
@@ -816,8 +811,8 @@ void readFile ( String file )
 String getSystemInformation()
 {
     String json;
-    StaticJsonBuffer<512> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
+    StaticJsonDocument<512> jsonBuffer;
+    JsonObject root = jsonBuffer.as<JsonObject>();
 
     root["sdk_version"] = ESP.getSdkVersion();
     root["boot_version"] = ESP.getBootVersion();
@@ -851,15 +846,15 @@ String getSystemInformation()
     root["station_mac"] = WiFi.macAddress();
     root["station_ip"] = staIP;
 
-    root.printTo ( json );
+    serializeJson ( root, json);
     return json;
 }
 
 String getApplicationSettings()
 {
     String json;
-    StaticJsonBuffer<512> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
+    StaticJsonDocument<512> jsonBuffer;
+    JsonObject root = jsonBuffer.as<JsonObject>();
 
     root["version"] = version;
     root["appid"] = appid;
@@ -873,7 +868,7 @@ String getApplicationSettings()
     root["rrsession"] = rrsession;
     root["rrtotal"] = rrtotal;
 
-    root.printTo ( json );
+    serializeJson ( root, json);
     return json;
 }
 
@@ -887,7 +882,7 @@ void onTimer ()
 void eepromLoad()
 {
     String json;
-    StaticJsonBuffer<512> jsonBuffer;
+    StaticJsonDocument<512> jsonBuffer;
 
     int i = 0;
 
@@ -899,10 +894,11 @@ void eepromLoad()
 
     //dbg_printf("EEPROM[%s]", json.c_str());
 
-    JsonObject &root = jsonBuffer.parseObject ( json );
+    deserializeJson(jsonBuffer, json);
+    JsonObject root = jsonBuffer.as<JsonObject>();
 
     // If Parsing failed EEPROM isn't initialized
-    if ( !root.success() )
+    if ( root.isNull() )
     {
         eepromInitialize();
         eepromSave();
@@ -921,7 +917,7 @@ void eepromLoad()
         rrtotal = root["rrtotal"];
 
         // If the AppID doesn't match then initialize EEPROM
-        if ( version != root.get<float> ( "version" ) )
+        if ( version != root["version"] )
         {
             dbg_printf ( "EEPROM - Version Changed" );
             eepromInitialize();
@@ -930,15 +926,15 @@ void eepromLoad()
         }
 
         dbg_printf ( "EEPROM - Loaded" );
-        root.prettyPrintTo ( Serial );
+        serializeJsonPretty ( root, Serial);
         Serial.println();
     }
 }
 
 void eepromSave()
 {
-    StaticJsonBuffer<512> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
+    StaticJsonDocument<512> jsonBuffer;
+    JsonObject root = jsonBuffer.as<JsonObject>();
 
     root["version"] = version;
     root["appid"] = appid;
@@ -952,7 +948,7 @@ void eepromSave()
     root["rrtotal"] = rrtotal;
 
     char buffer[512];
-    root.printTo ( buffer, sizeof ( buffer ) );
+    serializeJson ( root, buffer, sizeof ( buffer ) );
 
     int i = 0;
 
@@ -966,7 +962,7 @@ void eepromSave()
     EEPROM.commit();
 
     dbg_printf ( "EEPROM - Saved" );
-    root.prettyPrintTo ( Serial );
+    serializeJsonPretty ( root, Serial);
     Serial.println();
 }
 
@@ -1000,12 +996,12 @@ String getEEPROM()
 bool disconnectStationByIP ( IPAddress station_ip )
 {
     // Do ARP Query to get MAC address of station_ip
-
+    return true;
 }
 
 bool disconnectStationByMAC ( uint8_t *station_mac )
 {
-
+    return true;
 }
 
 //***************************************************************************
@@ -1042,6 +1038,9 @@ void loop ( void )
 
         case statemachine::read_file:
             readFile ( state_string );
+            break;
+
+        default:
             break;
     }
 
@@ -1124,10 +1123,6 @@ void onRequest ( AsyncWebServerRequest *request )
         response->addHeader ( "Pragma", "no-cache" );
         response->addHeader ( "Location", "http://mobile-rr.local/index.htm" );
         request->send ( response );
-    }
-    else if ( !file_count )
-    {
-        request->send_P (200, "text/plain", "SPIFFS Missing! (Upload File System Image)" );
     }
     else if ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) )
     {
