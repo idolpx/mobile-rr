@@ -18,8 +18,8 @@ The console also allows you to enter commands to get more info about the status 
 The "debug" setting is on by default and shows you all DNS and HTTP requests made to the device. It's kind of cool to see all the sites that the apps on your phone are trying to access. Check out the screenshots of the console for a glimpse of what it looks like. Some apps are very noisy. You can toggle the "debug" off to not see that stuff.
 
 ## Parts List
-* ESP8266 Module with 4MB of flash  (I used the WeMos D1 Mini) (http://www.aliexpress.com/snapshot/7833150367.html?orderId=76398745536320)
-* Piezo buzzer (http://www.aliexpress.com/snapshot/7762649061.html?orderId=75910217556320)
+* ESP8266 Module with 4MB of flash  (I used the WeMos D1 Mini) (https://www.aliexpress.com/af/esp8266-wemos-d1-mini.html)
+* Mini Piezo Buzzer 3v (https://www.aliexpress.com/wholesale?SearchText=mini+piezo+buzzer+3v)
 * USB battery pack with micro-usb cable to power everything
 
 ## Wiring
