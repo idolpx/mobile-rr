@@ -1120,13 +1120,15 @@ void onRequest ( AsyncWebServerRequest *request )
     );
 
     String path = request->url();
+    char redirect[40];
+    sprintf ( redirect, "http://%s/index.htm", ipToString ( ip ).c_str() );
 
     if ( request->host() != "mobile-rr.local" && request->host() != WiFi.softAPIP().toString() ) {
         AsyncWebServerResponse *response = request->beginResponse( 307 );
         response->addHeader ( "X-Frame-Options", "deny" );
         response->addHeader ( "Cache-Control", "no-cache" );
         response->addHeader ( "Pragma", "no-cache" );
-        response->addHeader ( "Location", "http://mobile-rr.local/index.htm" );
+        response->addHeader ( "Location", redirect );
         request->send ( response );
     }
     else if ( !file_count )
@@ -1136,7 +1138,7 @@ void onRequest ( AsyncWebServerRequest *request )
     else if ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) )
     {
         AsyncWebServerResponse *response = request->beginResponse ( 302, "text/plain", "" );
-        response->addHeader ( "Location", "http://mobile-rr.local/index.htm" );
+        response->addHeader ( "Location", redirect );
         request->send ( response );
     }
     else
