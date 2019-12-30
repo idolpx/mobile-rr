@@ -51,7 +51,7 @@ extern "C"
 #include "user_interface.h"
 
     void system_set_os_print ( uint8 onoff );
-    void ets_install_putc1 ( void *routine );
+    //void ets_install_putc1 ( void *routine );
 }
 
 ADC_MODE ( ADC_VCC );                                                           // Set ADC for Voltage Monitoring
@@ -140,6 +140,7 @@ int state_int;
 String state_string;
 
 IPAddress ip ( 10, 10, 10, 1 );                                                 // Private network for httpd
+IPAddress mask ( 255, 255, 255, 0 );
 DNSServer dnsd;                                                                 // Create the DNS object
 MDNSResponder mdns;
 
@@ -154,6 +155,7 @@ int rrsession;                                                                  
 int rrtotal;                                                                    // Rick Roll Count Total
 char str_vcc[8];
 int chan_selected;
+uint16_t file_count;
 
 //***************************************************************************
 // End of global data section.                                              *
@@ -389,7 +391,7 @@ void setup ( void )
     uint8_t mac[6];
     char mdnsDomain[] = "";
 
-    ets_install_putc1 ( ( void * ) &_u0_putc );
+    ets_install_putc1 ( &_u0_putc );
     system_set_os_print ( 1 );
 //  system_update_cpu_freq ( 160 );                                             // Set CPU to 80/160 MHz
 
@@ -415,7 +417,7 @@ void setup ( void )
     // Setup Access Point
     wifi_set_phy_mode ( PHY_MODE_11B );
     WiFi.mode ( WIFI_AP );
-    WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 0, 0, 0 ) );
+    WiFi.softAPConfig ( ip, ip, mask );
     chan_selected = setupAP ( channel );
     WiFi.softAP ( ssid, NULL, chan_selected );
     WiFi.softAPmacAddress ( mac );
@@ -506,7 +508,7 @@ int setupAP ( int chan_selected )
         WiFi.softAPdisconnect ( true );
         WiFi.mode ( WIFI_AP );
         wifi_set_phy_mode ( PHY_MODE_11B );
-        WiFi.softAPConfig ( ip, ip, IPAddress ( 255, 255, 255, 0 ) );
+        WiFi.softAPConfig ( ip, ip, mask );
         WiFi.softAP ( ssid, NULL, chan_selected );
     }
     else
@@ -536,7 +538,7 @@ void setupSPIFFS()
     SPIFFS.begin();                                                         // Enable file system
 
     // Show some info about the SPIFFS
-    uint16_t cnt = 0;
+    file_count = 0;
     SPIFFS.info ( fs_info );
     dbg_printf ( "SPIFFS Files\nName                           -      Size" );
     dir = SPIFFS.openDir ( "/" );                                           // Show files in FS
@@ -549,11 +551,11 @@ void setupSPIFFS()
                      filename.c_str(),
                      formatBytes ( f.size() ).c_str()
                    );
-        cnt++;
+        file_count++;
     }
 
     dbg_printf ( "%d Files, %s of %s Used",
-                 cnt,
+                 file_count,
                  formatBytes ( fs_info.usedBytes ).c_str(),
                  formatBytes ( fs_info.totalBytes ).c_str()
                );
@@ -572,13 +574,16 @@ void setupDNSServer()
     {
         dbg_printf ( "DNS Query [%d]: %s -> %s", remoteIP[3], domain, ipToString ( resolvedIP ).c_str() );
 
-        // connectivitycheck.android.com -> 74.125.21.113
+        // connectivitycheck.android.com -> 74.125.21.113, 172.217.21.67
         //if ( strstr( "clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|clients.l.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com|android.clients.google.com|play.googleapis.com", domain ) )
         //    dnsd.overrideIP =  IPAddress(172, 217, 21, 67);
 
         // dns.msftncsi.com -> 131.107.255.255
         //if ( strstr(domain, "msftncsi.com") )
         //    dnsd.overrideIP =  IPAddress(131, 107, 255, 255);
+
+        //if ( strstr( "msftncsi.com|clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|clients.l.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com|android.clients.google.com|play.googleapis.com", domain ) )
+        //    dnsd.overrideIP =  IPAddress(ip[0], ip[1], ip[2], ip[3]+10);
 
     } );
     dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
@@ -596,8 +601,8 @@ void setupHTTPServer()
     dbg_printf ( "Starting HTTP Captive Portal" );
 
     // Handle requests
-    httpd.on ( "/generate_204", onRequest );  //Android captive portal. Maybe not needed. Might be handled by notFound handler.
-    httpd.on ( "/fwlink", onRequest );  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
+    //httpd.on ( "/generate_204", onRequest );  //Android captive portal. Maybe not needed. Might be handled by notFound handler.
+    //httpd.on ( "/fwlink", onRequest );  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
     httpd.onNotFound ( onRequest );
 
     // HTTP basic authentication
@@ -1123,6 +1128,10 @@ void onRequest ( AsyncWebServerRequest *request )
         response->addHeader ( "Pragma", "no-cache" );
         response->addHeader ( "Location", "http://mobile-rr.local/index.htm" );
         request->send ( response );
+    }
+    else if ( !file_count )
+    {
+        request->send_P (200, "text/plain", "SPIFFS Missing! (Upload File System Image)" );
     }
     else if ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) )
     {

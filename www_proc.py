@@ -196,7 +196,7 @@ Import("env")
 config = configparser.ConfigParser()
 config.read("platformio.ini")
 
-options = config.get("env:d1_mini","custom_option")
+options = config.get("env:d1_mini_pro","custom_option")
 print config.sections()
 
 # Set parameters from environment variables
