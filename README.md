@@ -1,6 +1,6 @@
 # ESP8266 Mobile Rick Roll Captive Portal
-### Live Chat
-[![Gitter](https://badges.gitter.im/idolpx/mobile-rr.svg)](https://gitter.im/idolpx/mobile-rr?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+### This project was featured on the Hack-a-Day blog! [Check it out!](https://hackaday.com/2016/07/19/never-gonna-give-up-free-wifi/)
 
 The purpose of this project was to help me get familiar with programming for the ESP8266 and have a bit of fun.
 
