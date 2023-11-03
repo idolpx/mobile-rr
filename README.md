@@ -1,6 +1,6 @@
 # ESP8266 Mobile Rick Roll Captive Portal
-### Live Chat
-[![Gitter](https://badges.gitter.im/idolpx/mobile-rr.svg)](https://gitter.im/idolpx/mobile-rr?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+### This project was featured on the Hack-a-Day blog! [Check it out!](https://hackaday.com/2016/07/19/never-gonna-give-up-free-wifi/)
 
 The purpose of this project was to help me get familiar with programming for the ESP8266 and have a bit of fun.
 
@@ -33,18 +33,23 @@ I use PlatformIO to build this.  http://platformio.org/
 * Once updated and restarted, clone the "mobile-rr" project to a folder and open the project in PlatformIO
 * Next build the firmware by clicking the checkmark icon on the toolbar
 
-![Build Firmware](doc/1.buildfirmware.png)
+| Atom                                     | Visual Studio Code                              |
+:-----------------------------------------:|:-----------------------------------------------:|
+![Build Firmware](doc/1.buildfirmware.png) | ![Build Firmware](doc/1.buildfirmware_vscode.png)
 
 ## Upload Firmware and SPIFFS data
 After your firmware build is successful you can upload it by clicking the arrow under the checkmark in the PlatformIO toolbar.
 
-![Upload Firmware](doc/2.uploadfirmware.png)
+| Atom                                       | Visual Studio Code                                |
+:-------------------------------------------:|:-------------------------------------------------:|
+![Upload Firmware](doc/2.uploadfirmware.png) | ![Upload Firmware](doc/2.uploadfirmware_vscode.png)
 
 You can add/edit the files in the "www" folder to your liking. (Files in the "www" folder will be cloned and gzipped to the "data" folder when building.) Then follow the instructions below to build and upload the SPIFFS file system image to your ESP8266.
 
-![Upload SPIFFS 1](doc/3.uploadspiffs.png)
-
-![Upload SPIFFS 2](doc/4.uploadspiffs.png)
+| Atom                                     | Visual Studio Code                              |
+:-----------------------------------------:|:-----------------------------------------------:|
+![Upload SPIFFS 1](doc/3.uploadspiffs.png) | ![Upload SPIFFS 1](doc/3.uploadspiffs_vscode.png)
+![Upload SPIFFS 2](doc/4.uploadspiffs.png) | ![Upload SPIFFS 2](doc/4.uploadspiffs_vscode.png)
 
 **Note: Anytime you make changes to the firmware or the data you can rebuild and upload either without the need to install the other again. They reside in different areas of the flash memory.**
 
