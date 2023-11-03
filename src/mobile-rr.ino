@@ -40,10 +40,11 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <EEPROM.h>
-#include <FS.h>
 #include <Hash.h>
 #include <Ticker.h>
 
+#include "global_defines.h"
+#include "config_fs.h"
 #include "DNSServer.h"
 
 extern "C"
@@ -70,53 +71,6 @@ static void _u0_putc ( char c )
 // Forward declaration of methods                                                          *
 //******************************************************************************************
 int setupAP ( int chan_selected );
-
-//***************************************************************************
-// Global data section.                                                     *
-//***************************************************************************
-float version               = 1.43;
-const char *appid           = "mobile-rr";
-char ssid[]                 = "FREE Highspeed WiFi";
-int channel                 = 0;
-char username[]             = "admin";
-char password[]             = "";
-bool DEBUG                  = 1;
-bool SILENT                 = 0;
-int interval                = 30;                                               // 30 Minutes
-
-#define PIEZO_PIN       4
-
-// Maximum number of simultaneous clients connected (WebSocket)
-#define MAX_WS_CLIENT   3
-
-#define CLIENT_NONE     0
-#define CLIENT_ACTIVE   1
-
-
-#define HELP_TEXT "[[b;green;]ESP8266 Mobile Rick Roll]\n" \
-        "------------------------\n" \
-        "[[b;cyan;]?] or [[b;cyan;]help]    show this help\n\n" \
-        "[[b;cyan;]debug {0/1}]  show/set debug output\n" \
-        "[[b;cyan;]silent {0/1}] show/set silent mode\n" \
-        "[[b;cyan;]ssid 's']     show/set SSID to 's'\n" \
-        "[[b;cyan;]chan {0-11}]  show/set channel (0=auto)\n" \
-        "[[b;cyan;]int {n}]      show/set auto scan interval\n" \
-        "               where 'n' is mins (0=off)\n" \
-        "[[b;cyan;]msg 's']      show/set message to 's'\n" \
-        "[[b;cyan;]user 's']     show/set username to 's'\n" \
-        "[[b;cyan;]pass 's']     show/set password to 's'\n\n" \
-        "[[b;cyan;]beep {n/rr}]  sound piezo for 'n' ms\n" \
-        "[[b;cyan;]count]        show Rick Roll count\n" \
-        "[[b;cyan;]info]         show system information\n" \
-        "[[b;cyan;]json {e/s/i}] show EEPROM, App Settings,\n" \
-        "               or System Information\n\n" \
-        "[[b;cyan;]ls]           list SPIFFS files\n" \
-        "[[b;cyan;]cat 's']      read SPIFFS file 's'\n" \
-        "[[b;cyan;]rm 's']       remove SPIFFS file 's'\n\n" \
-        "[[b;cyan;]scan]         scan WiFi networks in area\n\n" \
-        "[[b;cyan;]reboot]       reboot system\n" \
-        "[[b;cyan;]reset]        reset default settings\n" \
-        "[[b;cyan;]save]         save settings to EEPROM"
 
 // Web Socket client state
 typedef struct
@@ -449,7 +403,7 @@ void setup ( void )
     dbg_printf ( "getFlashChipSpeed:  %d MHz\n", int ( ESP.getFlashChipSpeed() / 1000000 ) );
 
     // Start File System
-    setupSPIFFS();
+    setupfileSystem();
 
     setupDNSServer();
 
@@ -528,20 +482,20 @@ void setupEEPROM()
     dbg_printf ( "" );
 }
 
-void setupSPIFFS()
+void setupfileSystem()
 {
-    FSInfo fs_info;                                                         // Info about SPIFFS
-    Dir dir;                                                                // Directory struct for SPIFFS
+    FSInfo fs_info;                                                         // Info about fileSystem
+    Dir dir;                                                                // Directory struct for fileSystem
     File f;                                                                 // Filehandle
-    String filename;                                                        // Name of file found in SPIFFS
+    String filename;                                                        // Name of file found in fileSystem
 
-    SPIFFS.begin();                                                         // Enable file system
+    fileSystem->begin();                                                         // Enable file system
 
-    // Show some info about the SPIFFS
+    // Show some info about the fileSystem
     file_count = 0;
-    SPIFFS.info ( fs_info );
-    dbg_printf ( "SPIFFS Files\nName                           -      Size" );
-    dir = SPIFFS.openDir ( "/" );                                           // Show files in FS
+    fileSystem->info ( fs_info );
+    dbg_printf ( "fileSystem Files\nName                           -      Size" );
+    dir = fileSystem->openDir ( "/" );                                           // Show files in FS
 
     while ( dir.next() )                                                    // All files
     {
@@ -612,7 +566,7 @@ void setupHTTPServer()
             if ( !request->authenticate ( username, password ) )
                 return request->requestAuthentication();
 
-        request->send ( SPIFFS, "/console.htm" );
+        request->send ( *fileSystem, "/console.htm" );
     } );
 
     httpd.on ( "/trigger", HTTP_GET, [] ( AsyncWebServerRequest * request )
@@ -690,7 +644,7 @@ void setupOTAServer()
     // OTA callbacks
     ArduinoOTA.onStart ( []()
     {
-        SPIFFS.end();                                                   // Clean SPIFFS
+        fileSystem->end();                                                   // Clean fileSystem
 
         ws.enable ( false );                                            // Disable client connections
         dbg_printf ( "OTA Update Started" );                            // Let connected clients know what's going on
@@ -793,7 +747,7 @@ int scanWiFi ()
 
 void readFile ( String file )
 {
-    File f = SPIFFS.open ( file, "r" );
+    File f = fileSystem->open ( file, "r" );
 
     if ( !f )
     {
@@ -836,10 +790,10 @@ String getSystemInformation()
     root["flash_speed"] = ( ESP.getFlashChipSpeed() / 1000000 );
 
     FSInfo fs_info;
-    SPIFFS.info ( fs_info );
-    root["spiffs_size"] = fs_info.totalBytes;
-    root["spiffs_used"] = fs_info.usedBytes;
-    root["spiffs_free"] = ( fs_info.totalBytes - fs_info.usedBytes );
+    fileSystem->info ( fs_info );
+    root["fileSystem_size"] = fs_info.totalBytes;
+    root["fileSystem_used"] = fs_info.usedBytes;
+    root["fileSystem_free"] = ( fs_info.totalBytes - fs_info.usedBytes );
 
     char apIP[16];
     sprintf ( apIP, "%s", ipToString ( WiFi.softAPIP() ).c_str() );
@@ -861,7 +815,7 @@ String getApplicationSettings()
     StaticJsonDocument<512> jsonBuffer;
     JsonObject root = jsonBuffer.as<JsonObject>();
 
-    root["version"] = version;
+    root["version"] = FW_VERSION;
     root["appid"] = appid;
     root["ssid"] = ssid;
     root["channel"] = chan_selected;
@@ -941,7 +895,7 @@ void eepromSave()
     StaticJsonDocument<512> jsonBuffer;
     JsonObject root = jsonBuffer.as<JsonObject>();
 
-    root["version"] = version;
+    root["version"] = FW_VERSION;
     root["appid"] = appid;
     root["ssid"] = ssid;
     root["channel"] = channel;
@@ -1119,11 +1073,26 @@ void onRequest ( AsyncWebServerRequest *request )
         request->url().c_str()
     );
 
+    //List all collected headers
+    int headers = request->headers();
+    int i;
+
+    for ( i = 0; i < headers; i++ )
+    {
+        AsyncWebHeader *h = request->getHeader ( i );
+        Serial.printf ( "HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str() );
+    }
+
     String path = request->url();
     char redirect[40];
     sprintf ( redirect, "http://%s/index.htm", ipToString ( ip ).c_str() );
 
-    if ( request->host() != "mobile-rr.local" && request->host() != WiFi.softAPIP().toString() ) {
+    if ( request->host() == "ctest.cdn.nintendo.net") {
+        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/plain", "ok" );
+        response->addHeader ( "X-Organization", "Nintendo" );
+        request->send ( response );
+    }
+    else if ( request->host() != "mobile-rr.local" && request->host() != WiFi.softAPIP().toString() ) {
         AsyncWebServerResponse *response = request->beginResponse( 307 );
         response->addHeader ( "X-Frame-Options", "deny" );
         response->addHeader ( "Cache-Control", "no-cache" );
@@ -1133,9 +1102,9 @@ void onRequest ( AsyncWebServerRequest *request )
     }
     else if ( !file_count )
     {
-        request->send_P (200, "text/plain", "SPIFFS Missing! (Upload File System Image)" );
+        request->send_P (200, "text/plain", "fileSystem Missing! (Upload File System Image)" );
     }
-    else if ( !SPIFFS.exists ( path ) && !SPIFFS.exists ( path + ".gz" ) )
+    else if ( !fileSystem->exists ( path ) && !fileSystem->exists ( path + ".gz" ) )
     {
         AsyncWebServerResponse *response = request->beginResponse ( 302, "text/plain", "" );
         response->addHeader ( "Location", redirect );
@@ -1146,13 +1115,13 @@ void onRequest ( AsyncWebServerRequest *request )
         char s_tmp[] = "";
         AsyncWebServerResponse *response;
 
-        if ( !request->hasParam ( "download" ) && SPIFFS.exists ( path + ".gz" ) )
+        if ( !request->hasParam ( "download" ) && fileSystem->exists ( path + ".gz" ) )
         {
-            response = request->beginResponse ( SPIFFS, path, String(), request->hasParam ( "download" ) );
+            response = request->beginResponse ( *fileSystem, path, String(), request->hasParam ( "download" ) );
         }
         else
         {
-            response = request->beginResponse ( SPIFFS, path );                         // Okay, send the file
+            response = request->beginResponse ( *fileSystem, path );                         // Okay, send the file
 
         }
 
@@ -1368,7 +1337,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         }
 
     }
-    // Dir files on SPIFFS system
+    // Dir files on fileSystem system
     // --------------------------
     else if ( !strcasecmp_P ( msg, PSTR ( "ls" ) ) )
     {
@@ -1376,8 +1345,8 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
         uint16_t cnt = 0;
         String filename;
 
-        client->printf_P ( PSTR ( "[[b;green;]SPIFFS Files]\r\nName                           -      Size" ) );
-        Dir dir = SPIFFS.openDir ( "/" );                               // Show files in FS
+        client->printf_P ( PSTR ( "[[b;green;]fileSystem Files]\r\nName                           -      Size" ) );
+        Dir dir = fileSystem->openDir ( "/" );                               // Show files in FS
 
         while ( dir.next() )                                            // All files
         {
@@ -1391,7 +1360,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
             f.close();
         }
 
-        SPIFFS.info ( fs_info );
+        fileSystem->info ( fs_info );
         client->printf_P ( PSTR ( "%d Files, %s of %s Used" ),
                            cnt,
                            formatBytes ( fs_info.usedBytes ).c_str(),
@@ -1405,7 +1374,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
     {
         if ( !strncasecmp_P ( msg, PSTR ( "cat " ), 4 ) )
         {
-            if ( SPIFFS.exists ( &msg[4] ) )
+            if ( fileSystem->exists ( &msg[4] ) )
             {
                 state_string = &msg[4];
                 state = statemachine::read_file;
@@ -1421,9 +1390,9 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
     {
         if ( !strncasecmp_P ( msg, PSTR ( "rm " ), 3 ) )
         {
-            if ( SPIFFS.exists ( &msg[3] ) )
+            if ( fileSystem->exists ( &msg[3] ) )
             {
-                SPIFFS.remove ( &msg[3] );
+                fileSystem->remove ( &msg[3] );
             }
             else
             {
@@ -1644,16 +1613,16 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
     {
         File f;
 
-        // Open "message.htm" file stream from SPIFFS
-        if ( SPIFFS.exists ( "/message.htm" ) )
+        // Open "message.htm" file stream from fileSystem
+        if ( fileSystem->exists ( "/message.htm" ) )
         {
             //Serial.println ( "File opened r+" );
-            f = SPIFFS.open ( "/message.htm", "r+" );
+            f = fileSystem->open ( "/message.htm", "r+" );
         }
         else
         {
             //Serial.println ( "File opened w+" );
-            f = SPIFFS.open ( "/message.htm", "w+" );
+            f = fileSystem->open ( "/message.htm", "w+" );
         }
 
         if ( !f )
@@ -1679,7 +1648,7 @@ void execCommand ( AsyncWebSocketClient *client, char *msg )
                     state = statemachine::beep;
                 }
 
-                // Write Message to "message.htm" in SPIFFS
+                // Write Message to "message.htm" in fileSystem
                 f.print ( &msg[4] );
             }
 
