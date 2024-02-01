@@ -93,13 +93,12 @@ statemachine state = statemachine::none;
 int state_int;
 String state_string;
 
-IPAddress ip ( 10, 10, 10, 1 );                                                 // Private network for httpd
+IPAddress ip ( 192, 168, 1, 1 );                                                 // Private network for httpd
 IPAddress mask ( 255, 255, 255, 0 );
 DNSServer dnsd;                                                                 // Create the DNS object
 MDNSResponder mdns;
 
 AsyncWebServer httpd ( 80 );                                                    // Instance of embedded webserver
-//AsyncWebServer  httpsd ( 443 );
 AsyncWebSocket ws ( "/ws" );                                                    // access at ws://[esp ip]/ws
 _ws_client ws_client[MAX_WS_CLIENT];                                            // State Machine for WebSocket Client;
 
@@ -407,7 +406,7 @@ void setup ( void )
 
     setupDNSServer();
 
-    sprintf ( mdnsDomain, "%s.local", appid );
+    sprintf ( mdnsDomain, "%s.com", appid );
     dbg_printf ( "Starting mDNS Responder" );
 
     if ( !mdns.begin ( mdnsDomain, ip ) )
@@ -526,8 +525,6 @@ void setupDNSServer()
     dbg_printf ( "Starting DNS Server" );
     dnsd.onQuery ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & resolvedIP )
     {
-        dbg_printf ( "DNS Query [%d]: %s -> %s", remoteIP[3], domain, ipToString ( resolvedIP ).c_str() );
-
         // connectivitycheck.android.com -> 74.125.21.113, 172.217.21.67
         //if ( strstr( "clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|clients.l.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com|android.clients.google.com|play.googleapis.com", domain ) )
         //    dnsd.overrideIP =  IPAddress(172, 217, 21, 67);
@@ -539,12 +536,35 @@ void setupDNSServer()
         //if ( strstr( "msftncsi.com|clients1.google.com|clients2.google.com|clients3.google.com|clients4.google.com|clients.l.google.com|connectivitycheck.android.com|connectivitycheck.gstatic.com|android.clients.google.com|play.googleapis.com", domain ) )
         //    dnsd.overrideIP =  IPAddress(ip[0], ip[1], ip[2], ip[3]+10);
 
+        // https://unix.stackexchange.com/questions/432190/why-isnt-androids-captive-portal-detection-triggering-a-browser-window
+        // https://android.stackexchange.com/questions/215659/why-isnt-my-galaxy-s8-popping-up-my-captive-portal-login-page
+        if ( 
+            String( domain ) == "msftncsi.com" ||
+            String( domain ) == "android.clients.google.com" ||
+            String( domain ) == "clients1.google.com" ||
+            String( domain ) == "clients2.google.com" ||
+            String( domain ) == "clients3.google.com" ||
+            String( domain ) == "clients4.google.com" ||
+            String( domain ) == "clients.l.google.com" ||
+            String( domain ) == "connectivitycheck.android.com" ||
+            String( domain ) == "connectivitycheck.gstatic.com" ||
+            String( domain ) == "play.googleapis.com"
+        )
+        {
+            dnsd.resolvedIP[0] = 108;
+            dnsd.resolvedIP[1] = 177;
+            dnsd.resolvedIP[2] = 122;
+            dnsd.resolvedIP[3] = 94;
+        }
+
+        dbg_printf ( "DNS Query [%d]: %s -> %d.%d.%d.%d", remoteIP[3], domain,
+                        dnsd.resolvedIP[0],
+                        dnsd.resolvedIP[1],
+                        dnsd.resolvedIP[2],
+                        dnsd.resolvedIP[3]
+                    );
     } );
-    dnsd.onOverride ( [] ( const IPAddress & remoteIP, const char *domain, const IPAddress & overrideIP )
-    {
-        dbg_printf ( "DNS Override [%d]: %s -> %s", remoteIP[3], domain, ipToString ( overrideIP ).c_str() );
-    } );
-    //dnsd.setErrorReplyCode ( DNSReplyCode::NoError );
+
     dnsd.setTTL(0);
     dnsd.start ( 53, "*", ip );
 }
@@ -555,8 +575,6 @@ void setupHTTPServer()
     dbg_printf ( "Starting HTTP Captive Portal" );
 
     // Handle requests
-    //httpd.on ( "/generate_204", onRequest );  //Android captive portal. Maybe not needed. Might be handled by notFound handler.
-    //httpd.on ( "/fwlink", onRequest );  //Microsoft captive portal. Maybe not needed. Might be handled by notFound handler.
     httpd.onNotFound ( onRequest );
 
     // HTTP basic authentication
@@ -593,16 +611,16 @@ void setupHTTPServer()
             state = statemachine::beep_c;
         }
 
-/*        //List all collected headers
-        int headers = request->headers();
-        int i;
+        // //List all collected headers
+        // int headers = request->headers();
+        // int i;
 
-        for ( i = 0; i < headers; i++ )
-        {
-            AsyncWebHeader *h = request->getHeader ( i );
-            Serial.printf ( "HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str() );
-        }
-*/
+        // for ( i = 0; i < headers; i++ )
+        // {
+        //     AsyncWebHeader *h = request->getHeader ( i );
+        //     Serial.printf ( "HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str() );
+        // }
+
         // Disconnect that station
         //wifi_softap_dhcps_client_leave(NULL, remoteIP, true);
     } );
@@ -1067,32 +1085,35 @@ void onRequest ( AsyncWebServerRequest *request )
 
     IPAddress remoteIP = request->client()->remoteIP();
     dbg_printf (
-        "HTTP[%d]: %s%s",
+        "HTTP[%d]: [%s][%s]",
         remoteIP[3],
         request->host().c_str(),
         request->url().c_str()
     );
 
-    //List all collected headers
-    int headers = request->headers();
-    int i;
+    // //List all collected headers
+    // int headers = request->headers();
+    // int i;
 
-    for ( i = 0; i < headers; i++ )
-    {
-        AsyncWebHeader *h = request->getHeader ( i );
-        Serial.printf ( "HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str() );
-    }
+    // for ( i = 0; i < headers; i++ )
+    // {
+    //     AsyncWebHeader *h = request->getHeader ( i );
+    //     Serial.printf ( "HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str() );
+    // }
 
     String path = request->url();
     char redirect[40];
     sprintf ( redirect, "http://%s/index.htm", ipToString ( ip ).c_str() );
 
-    if ( request->host() == "ctest.cdn.nintendo.net") {
-        AsyncWebServerResponse *response = request->beginResponse ( 200, "text/plain", "ok" );
-        response->addHeader ( "X-Organization", "Nintendo" );
-        request->send ( response );
-    }
-    else if ( request->host() != "mobile-rr.local" && request->host() != WiFi.softAPIP().toString() ) {
+    // if ( request->url() == "/generate_204" ) {
+    //     dbg_printf("---> redirect.htm");
+    //     AsyncWebServerResponse *response = request->beginResponse( 200 );
+    //     //request->send_P (200, "text/html", "<html><head><title>Redirecting to Captive Portal</title><meta http-equiv='refresh' content='0; url=http://192.168.1.1'></head><body><p>Please wait, refreshing.  If page does not refresh, click <a href='http://192.168.1.1'>here</a> to login.</p></body></html>");
+    //     response = request->beginResponse ( *fileSystem, "/redirect.htm" );
+    //     request->send ( response );
+    // }
+    // else 
+    if ( request->host() != "mobile-rr.com" && request->host() != WiFi.softAPIP().toString() ) {
         AsyncWebServerResponse *response = request->beginResponse( 307 );
         response->addHeader ( "X-Frame-Options", "deny" );
         response->addHeader ( "Cache-Control", "no-cache" );
@@ -1122,15 +1143,14 @@ void onRequest ( AsyncWebServerRequest *request )
         else
         {
             response = request->beginResponse ( *fileSystem, path );                         // Okay, send the file
-
         }
 
-        response->addHeader ( "Cache-Control", "no-cache, no-store, must-revalidate" );
-        response->addHeader ( "Pragma", "no-cache" );
-        response->addHeader ( "Expires", "-1" );
-//        response->setContentLength (CONTENT_LENGTH_UNKNOWN);
-        sprintf ( s_tmp, "%d", ESP.getFreeHeap() );
-        response->addHeader ( "ESP-Memory", s_tmp );
+        // response->addHeader ( "Cache-Control", "no-cache, no-store, must-revalidate" );
+        // response->addHeader ( "Pragma", "no-cache" );
+        // response->addHeader ( "Expires", "-1" );
+        // response->setContentLength (CONTENT_LENGTH_UNKNOWN);
+        // sprintf ( s_tmp, "%d", ESP.getFreeHeap() );
+        // response->addHeader ( "ESP-Memory", s_tmp );
         request->send ( response );
     }
 

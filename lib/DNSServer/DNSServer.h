@@ -48,7 +48,6 @@ class DNSServer
         void setTTL ( const uint32_t &ttl );
 
         void onQuery ( DNS_QUERY_HANDLER ( fn ) );
-        void onOverride ( DNS_OVERRIDE_HANDLER ( fn ) );
 
         // Returns true if successful, false if there are no sockets available
         bool start ( const uint16_t &port,
@@ -56,14 +55,14 @@ class DNSServer
                      const IPAddress &resolvedIP );
         // stops the DNS server
         void stop();
-        IPAddress overrideIP;
+
+        unsigned char resolvedIP[4];
 
     private:
         WiFiUDP _udp;
         uint16_t _port;
         String _domainName;
         unsigned char _resolvedIP[4];
-        unsigned char _overrideIP[4];
         int _currentPacketSize;
         unsigned char *_buffer;
         DNSHeader *_dnsHeader;
@@ -77,6 +76,5 @@ class DNSServer
         void replyWithCustomCode();
 
         DNS_QUERY_HANDLER ( _query_cb );
-        DNS_OVERRIDE_HANDLER ( _override_cb );
 };
 #endif

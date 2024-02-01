@@ -16,7 +16,7 @@ bool DEBUG                  = 1;
 bool SILENT                 = 0;
 int interval                = 30;                                               // 30 Minutes
 
-#define PIEZO_PIN       4
+#define PIEZO_PIN       D2  // GPIO4
 
 // Maximum number of simultaneous clients connected (WebSocket)
 #define MAX_WS_CLIENT   3
@@ -51,7 +51,7 @@ int interval                = 30;                                               
         "[[b;cyan;]save]         save settings to EEPROM"
 
 
-#define LED_PIN         D4      // IO2
+#define LED_PIN         D4      // GPIO2
 #define LED_ON          LOW
 #define LED_OFF         HIGH
 #define LED_TIME        15      // #ms between toggle

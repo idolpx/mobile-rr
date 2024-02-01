@@ -10,14 +10,14 @@ DNSServer::DNSServer()
 }
 
 bool DNSServer::start ( const uint16_t &port, const String &domainName,
-                        const IPAddress &resolvedIP )
+                        const IPAddress &defaultResolvedIP )
 {
     _port = port;
     _domainName = domainName;
-    _resolvedIP[0] = resolvedIP[0];
-    _resolvedIP[1] = resolvedIP[1];
-    _resolvedIP[2] = resolvedIP[2];
-    _resolvedIP[3] = resolvedIP[3];
+    _resolvedIP[0] = defaultResolvedIP[0];
+    _resolvedIP[1] = defaultResolvedIP[1];
+    _resolvedIP[2] = defaultResolvedIP[2];
+    _resolvedIP[3] = defaultResolvedIP[3];
     downcaseAndRemoveWwwPrefix ( _domainName );
     return _udp.begin ( _port ) == 1;
 }
@@ -140,31 +140,18 @@ void DNSServer::replyWithIP()
 
     if ( _query_cb )
     {
-        overrideIP = IPAddress ( 0, 0, 0, 0 );
-        _query_cb ( _udp.remoteIP(), getDomainName().c_str(), _resolvedIP );
-        _overrideIP[0] = overrideIP[0];
-        _overrideIP[1] = overrideIP[1];
-        _overrideIP[2] = overrideIP[2];
-        _overrideIP[3] = overrideIP[3];
+        resolvedIP[0] = _resolvedIP[0];
+        resolvedIP[1] = _resolvedIP[1];
+        resolvedIP[2] = _resolvedIP[2];
+        resolvedIP[3] = _resolvedIP[3];
+        _query_cb ( _udp.remoteIP(), getDomainName().c_str(), resolvedIP );
     }
 
     // Length of RData is 4 bytes (because, in this case, RData is IPv4)
     _udp.write ( ( uint8_t ) 0 );
     _udp.write ( ( uint8_t ) 4 );
 
-    if ( _overrideIP[0] > 0 )
-    {
-        if ( _override_cb )
-        {
-            _override_cb ( _udp.remoteIP(), getDomainName().c_str(), _overrideIP );
-        }
-
-        _udp.write ( _overrideIP, sizeof ( _overrideIP ) );
-    }
-    else
-    {
-        _udp.write ( _resolvedIP, sizeof ( _resolvedIP ) );
-    }
+    _udp.write ( resolvedIP, sizeof ( resolvedIP ) );
 
     _udp.endPacket();
 
@@ -188,7 +175,3 @@ void DNSServer::onQuery ( DNS_QUERY_HANDLER ( fn ) )
     _query_cb = fn;
 }
 
-void DNSServer::onOverride ( DNS_OVERRIDE_HANDLER ( fn ) )
-{
-    _override_cb = fn;
-}
